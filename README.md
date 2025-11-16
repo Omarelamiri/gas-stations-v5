@@ -18,3 +18,12 @@ npx tailwindcss init -p
 
 
 2- wrap authentification pages 
+
+
+
+# In case you want to add more firebase users :
+   // API usage tracking - only allow reads for trusted user
+    match /api_usage/{usageId} {
+      allow read: if isTrustedUser();
+      allow write: if false; // Only backend should write
+    }

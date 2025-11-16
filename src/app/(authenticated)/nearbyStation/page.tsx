@@ -12,6 +12,7 @@ import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 import proj4 from 'proj4';
 import { formatDate } from '@/utils/format'; // Import formatDate function
+import { getProprietaireName } from '@/utils/format';
 
 // Define projections for ESPG:26191 (Merchich) and WGS84
 proj4.defs('EPSG:26191', '+proj=lcc +lat_1=33.3 +lat_0=33.3 +lon_0=-5.4 +k_0=0.999625769 +x_0=500000 +y_0=300000 +ellps=clrk80ign +towgs84=31,146,47,0,0,0,0 +units=m +no_defs');
@@ -57,12 +58,15 @@ export default function NearbyStationsPage() {
         { header: 'Type', key: 'type', width: 15 },
         { header: 'Latitude', key: 'latitude', width: 15 },
         { header: 'Longitude', key: 'longitude', width: 15 },
+        { header: 'Province', key: 'province', width: 15 },
+        { header: 'Commune', key: 'commune', width: 25 },
+        { header: 'Propriétaire', key: 'Proprietaire', width: 25 },
         { header: 'Gérant', key: 'gerant', width: 25 },
-        { header: 'Date de création', key: 'creationDate', width: 15 },
         { header: 'Distance (km)', key: 'distance', width: 15 },
         { header: 'Nombre de volucompteur', key: 'nombreVolucompteur', width: 20 },
         { header: 'Capacité Gasoil', key: 'capaciteGasoil', width: 15 },
         { header: 'Capacité SSP', key: 'capaciteSSP', width: 15 },
+        { header: 'Statut', key: 'statut', width: 15 },
       ];
 
       nearbyStations.forEach(station => {
@@ -80,12 +84,15 @@ export default function NearbyStationsPage() {
           type: station.station.Type || '-',
           latitude: station.station.Latitude || '-',
           longitude: station.station.Longitude || '-',
+          province: station.province.NomProvince || '-',
+          commune: station.commune.NomCommune || '-',
+          Proprietaire: getProprietaireName(station) || '',
           gerant: station.gerant?.fullName || `${station.gerant?.PrenomGerant || ''} ${station.gerant?.NomGerant || ''}`.trim() || '-',
-          creationDate: station.creationAutorisation ? formatDate(station.creationAutorisation.DateAutorisation) : 'N/A',
           distance: distanceValue,
           nombreVolucompteur: station.station.NombreVolucompteur || 0,
           capaciteGasoil: capaciteGasoil || '-',
           capaciteSSP: capaciteSSP || '-',
+          statut: station.station.Statut || '-',
         });
       });
 
