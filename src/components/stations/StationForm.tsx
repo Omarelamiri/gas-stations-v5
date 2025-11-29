@@ -16,7 +16,6 @@ import { useProprietaires } from '@/hooks/ReferenceData/useProprietaires';
 
 type AutorisationError = Partial<Record<'TypeAutorisation' | 'NumeroAutorisation' | 'DateAutorisation', string>>;
 
-
 export interface StationFormProps {
   mode: 'create' | 'edit';
   station?: StationWithDetails | null;
@@ -24,7 +23,14 @@ export interface StationFormProps {
   onCancel?: () => void;
 }
 
-// Reusable Select component with consistent styling
+// small helper to render label with optional required asterisk
+const FieldLabel: React.FC<{ label: string; required?: boolean; className?: string }> = ({ label, required, className }) => (
+  <label className={`text-sm font-medium text-gray-900 mb-1 ${className || ''}`}>
+    {label} {required && <span className="text-red-600" title="Requis">*</span>}
+  </label>
+);
+
+// Reusable Select component with consistent styling and optional hint
 const Select: React.FC<{
   label: string;
   value: string;
@@ -33,15 +39,18 @@ const Select: React.FC<{
   error?: string;
   disabled?: boolean;
   name?: string;
-}> = ({ label, value, onChange, options, error, disabled, name }) => (
+  className?: string;
+  required?: boolean;
+  hint?: string;
+}> = ({ label, value, onChange, options, error, disabled, name, className, required, hint }) => (
   <div className="flex flex-col">
-    <label className="text-sm font-medium text-gray-900 mb-1">{label}</label>
+    <FieldLabel label={label} required={required} />
     <select
       name={name}
       value={value}
       onChange={onChange}
       disabled={disabled}
-      className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+      className={`flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm ${className || ''}`}
     >
       {options.map((opt, idx) => (
         <option key={opt.id || `${opt.value}-${idx}`} value={opt.value}>
@@ -49,11 +58,12 @@ const Select: React.FC<{
         </option>
       ))}
     </select>
+    {hint && <p className="text-xs text-gray-500 mt-1">{hint}</p>}
     {error && <span className="text-red-600 text-xs mt-1">{error}</span>}
   </div>
 );
 
-// Autocomplete Input Component
+// Autocomplete Input Component with improved suggestion UI
 const AutocompleteInput: React.FC<{
   label: string;
   value: string;
@@ -66,6 +76,7 @@ const AutocompleteInput: React.FC<{
   placeholder?: string;
   disabled?: boolean;
   readOnly?: boolean;
+  required?: boolean;
 }> = ({ 
   label, 
   value, 
@@ -77,7 +88,8 @@ const AutocompleteInput: React.FC<{
   name,
   placeholder,
   disabled,
-  readOnly 
+  readOnly,
+  required
 }) => {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [filteredSuggestions, setFilteredSuggestions] = useState<any[]>([]);
@@ -105,7 +117,7 @@ const AutocompleteInput: React.FC<{
 
   return (
     <div className="flex flex-col relative">
-      <label className="text-sm font-medium text-gray-900 mb-1">{label}</label>
+      <FieldLabel label={label} required={required} />
       <input
         name={name}
         type="text"
@@ -116,21 +128,28 @@ const AutocompleteInput: React.FC<{
         placeholder={placeholder}
         disabled={disabled}
         readOnly={readOnly}
-        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+        className="flex h-10 w-full rounded-md border border-input bg-white px-3 py-1 text-base shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+        aria-autocomplete="list"
+        autoComplete="off"
       />
       {error && <span className="text-sm text-red-500 mt-1">{error}</span>}
       {showSuggestions && filteredSuggestions.length > 0 && (
-        <ul className="absolute top-full left-0 right-0 z-50 mt-1 max-h-60 overflow-auto rounded-md border border-gray-300 bg-white shadow-lg">
+        <ul className="absolute top-full left-0 right-0 z-50 mt-1 max-h-44 overflow-auto rounded-md border border-gray-200 bg-white shadow-lg">
           {filteredSuggestions.map((item, index) => (
             <li
               key={index}
               onMouseDown={() => handleSelect(item)}
-              className="cursor-pointer px-3 py-2 hover:bg-gray-100 text-sm"
+              className="cursor-pointer px-3 py-2 hover:bg-gray-100 text-sm flex items-center gap-2"
             >
-              {getSuggestionText(item)}
+              <span className="text-gray-700">{getSuggestionText(item)}</span>
             </li>
           ))}
         </ul>
+      )}
+      {showSuggestions && filteredSuggestions.length === 0 && (
+        <div className="absolute top-full left-0 right-0 z-50 mt-1 rounded-md border border-gray-200 bg-white p-2 text-sm text-gray-500">
+          Aucun résultat
+        </div>
       )}
     </div>
   );
@@ -165,6 +184,10 @@ export function StationForm({ mode, station, onSaved, onCancel }: StationFormPro
     const selectedMarque = marques.find(m => m.Marque === form.Marque);
     return selectedMarque?.RaisonSociale || '';
   }, [form.Marque, marques]);
+
+  useEffect(() => {
+    updateField('RaisonSociale', selectedMarqueRaisonSociale);
+  }, [selectedMarqueRaisonSociale, updateField]);
 
   const autorisations = form.autorisations ?? [];
 
@@ -263,20 +286,25 @@ export function StationForm({ mode, station, onSaved, onCancel }: StationFormPro
 
   return (
     <form onSubmit={onSubmit} className="space-y-6 text-gray-900 station-form">
+
       {errors.__form && <ErrorMessage error={errors.__form} />}
 
       {/* General Information */}
-      <fieldset className="space-y-6">
-        <legend className="text-lg font-semibold border-b pb-2 w-full text-gray-900">
-          Informations Générales
+      <fieldset className="space-y-4 bg-white p-4 rounded-lg shadow-sm border">
+        <legend className="text-lg font-semibold pb-1 flex items-center gap-2">
+          <span className="text-2xl">⛽</span>
+          <span>Informations Générales</span>
         </legend>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <p className="text-sm text-gray-500">Renseignez les informations de base de la station.</p>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
           <Input
             label="Nom de la station"
             name="NomStation"
             value={form.NomStation || ''}
             onChange={(e) => updateField('NomStation', e.target.value)}
             error={errors.NomStation}
+            placeholder="Ex: Station Centrale"
           />
           <Input
             label="Adresse"
@@ -284,6 +312,7 @@ export function StationForm({ mode, station, onSaved, onCancel }: StationFormPro
             value={form.Adresse || ''}
             onChange={(e) => updateField('Adresse', e.target.value)}
             error={errors.Adresse}
+            placeholder="Rue, numéro, quartier"
           />
           <Input
             label="Latitude"
@@ -291,6 +320,7 @@ export function StationForm({ mode, station, onSaved, onCancel }: StationFormPro
             value={form.Latitude || ''}
             onChange={(e) => updateField('Latitude', e.target.value)}
             error={errors.Latitude}
+            placeholder="Ex: 34.12345"
           />
           <Input
             label="Longitude"
@@ -298,6 +328,7 @@ export function StationForm({ mode, station, onSaved, onCancel }: StationFormPro
             value={form.Longitude || ''}
             onChange={(e) => updateField('Longitude', e.target.value)}
             error={errors.Longitude}
+            placeholder="Ex: -6.12345"
           />
           <Select
             label="Type"
@@ -305,7 +336,7 @@ export function StationForm({ mode, station, onSaved, onCancel }: StationFormPro
             onChange={(e) => updateField('Type', e.target.value)}
             options={[
               { value: 'service', label: 'Service', id: 'type-service' },
-              { value: 'distribution', label: 'Distribution', id: 'type-distribution' },
+              { value: 'remplissage', label: 'Remplissage', id: 'type-remplissage' },
             ]}
             error={errors.Type}
           />
@@ -318,16 +349,20 @@ export function StationForm({ mode, station, onSaved, onCancel }: StationFormPro
               ...marques.map(m => ({ value: m.Marque, label: m.Marque, id: m.MarqueID }))
             ]}
             error={errors.Marque}
+            hint="Sélectionnez la marque si applicable"
           />
-          <Input
-            label="Raison Sociale"
-            name="RaisonSociale"
-            value={selectedMarqueRaisonSociale}
-            readOnly
-            disabled
-            className="bg-gray-100 cursor-not-allowed"
-            error={errors.RaisonSociale}
-          />
+          <div className="md:col-span-2">
+            <FieldLabel label="Raison Sociale" />
+            <input
+              type="text"
+              readOnly
+              disabled
+              value={selectedMarqueRaisonSociale}
+              className="mt-1 w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700"
+              placeholder="La raison sociale apparaît ici après sélection de la marque"
+            />
+            {errors.RaisonSociale && <span className="text-red-600 text-xs mt-1">{errors.RaisonSociale}</span>}
+          </div>
           <Select
             label="Province"
             value={form.Province || ''}
@@ -341,6 +376,7 @@ export function StationForm({ mode, station, onSaved, onCancel }: StationFormPro
               }))
             ]}
             error={errors.Province}
+            hint="Choisir la province permet de filtrer les communes"
           />
           <Select
             label="Commune"
@@ -354,11 +390,13 @@ export function StationForm({ mode, station, onSaved, onCancel }: StationFormPro
       </fieldset>
 
       {/* Gérant */}
-      <fieldset className="space-y-6">
-        <legend className="text-lg font-semibold border-b pb-2 w-full text-gray-900">
-          Gérant
+      <fieldset className="space-y-4 bg-white p-4 rounded-lg shadow-sm border">
+        <legend className="text-lg font-semibold pb-1 flex items-center gap-2">
+          <span className="text-2xl">👤</span>
+          <span>Gérant</span>
         </legend>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <p className="text-sm text-gray-500">Sélectionnez un gérant existant ou tapez pour en créer un nouveau.</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
           <AutocompleteInput
             label="Prénom du gérant"
             name="PrenomGerant"
@@ -368,6 +406,7 @@ export function StationForm({ mode, station, onSaved, onCancel }: StationFormPro
             suggestions={gerants}
             getSuggestionText={(g) => `${g.PrenomGerant} ${g.NomGerant} (${g.CINGerant})`}
             error={errors.PrenomGerant}
+            placeholder="Rechercher prénom ou sélectionner"
           />
           <AutocompleteInput
             label="Nom du gérant"
@@ -378,6 +417,7 @@ export function StationForm({ mode, station, onSaved, onCancel }: StationFormPro
             suggestions={gerants}
             getSuggestionText={(g) => `${g.PrenomGerant} ${g.NomGerant} (${g.CINGerant})`}
             error={errors.NomGerant}
+            placeholder="Rechercher nom ou sélectionner"
           />
           <AutocompleteInput
             label="CIN du gérant"
@@ -388,6 +428,7 @@ export function StationForm({ mode, station, onSaved, onCancel }: StationFormPro
             suggestions={gerants}
             getSuggestionText={(g) => `${g.CINGerant} - ${g.PrenomGerant} ${g.NomGerant}`}
             error={errors.CINGerant}
+            placeholder="Ex: AA123456"
           />
           <AutocompleteInput
             label="Téléphone"
@@ -398,16 +439,19 @@ export function StationForm({ mode, station, onSaved, onCancel }: StationFormPro
             suggestions={gerants}
             getSuggestionText={(g) => `${g.Telephone || ''} - ${g.PrenomGerant} ${g.NomGerant}`}
             error={errors.Telephone}
+            placeholder="Ex: +212600000000"
           />
         </div>
       </fieldset>
 
       {/* Propriétaire */}
-      <fieldset className="space-y-6">
-        <legend className="text-lg font-semibold border-b pb-2 w-full text-gray-900">
-          Propriétaire
+      <fieldset className="space-y-4 bg-white p-4 rounded-lg shadow-sm border">
+        <legend className="text-lg font-semibold pb-1 flex items-center gap-2">
+          <span className="text-2xl">🏢</span>
+          <span>Propriétaire</span>
         </legend>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <p className="text-sm text-gray-500">Indiquez si le propriétaire est une personne physique ou une entreprise.</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
           <Select
             label="Type de propriétaire"
             value={form.TypeProprietaire || 'Physique'}
@@ -417,6 +461,7 @@ export function StationForm({ mode, station, onSaved, onCancel }: StationFormPro
               { value: 'Morale', label: 'Morale', id: 'prop-morale' }
             ]}
             error={errors.TypeProprietaire}
+            hint="Le type permet d'afficher les champs appropriés"
           />
           {form.TypeProprietaire === 'Physique' ? (
             <>
@@ -433,6 +478,7 @@ export function StationForm({ mode, station, onSaved, onCancel }: StationFormPro
                     : ''
                 }
                 error={errors.PrenomProprietaire}
+                placeholder="Rechercher propriétaire"
               />
               <AutocompleteInput
                 label="Nom du propriétaire"
@@ -447,6 +493,7 @@ export function StationForm({ mode, station, onSaved, onCancel }: StationFormPro
                     : ''
                 }
                 error={errors.NomProprietaire}
+                placeholder="Rechercher propriétaire"
               />
             </>
           ) : (
@@ -459,21 +506,25 @@ export function StationForm({ mode, station, onSaved, onCancel }: StationFormPro
               suggestions={filteredProprietaires}
               getSuggestionText={(p) => p.details?.NomEntreprise || ''}
               error={errors.NomEntreprise}
+              placeholder="Nom de l'entreprise"
             />
           )}
         </div>
       </fieldset>
 
       {/* Autorisations */}
-      <fieldset className="space-y-6">
-        <legend className="text-lg font-semibold border-b pb-2 w-full text-gray-900">
-          Autorisations
+      <fieldset className="space-y-4 bg-white p-4 rounded-lg shadow-sm border">
+        <legend className="text-lg font-semibold pb-1 flex items-center gap-2">
+          <span className="text-2xl">📜</span>
+          <span>Autorisations</span>
         </legend>
+        <p className="text-sm text-gray-500">Ajoutez jusqu'à 2 autorisations. Les types s'ajustent automatiquement.</p>
+
         {autorisations.length > 0 ? (
           autorisations.map((auto, index) => {
             const availableTypes = getAvailableAutorisationTypes(index);
             return (
-              <div key={index} className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 border rounded-md relative">
+              <div key={index} className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 border rounded-md relative bg-gray-50">
                 <Select
                   label="Type"
                   value={auto.TypeAutorisation || 'création'}
@@ -490,42 +541,31 @@ export function StationForm({ mode, station, onSaved, onCancel }: StationFormPro
                   value={auto.NumeroAutorisation || ''}
                   onChange={(e) => updateAutorisationField(index, 'NumeroAutorisation', e.target.value)}
                   error={(errors.autorisations as AutorisationError[] | undefined)?.[index]?.NumeroAutorisation}
+                  placeholder="Ex: A-2025-001"
                 />
                 <Input
                   label="Date"
                   value={auto.DateAutorisation || ''}
                   onChange={(e) => {
                     let value = e.target.value;
-                    
-                    // Remove any non-digit characters except /
                     value = value.replace(/[^\d/]/g, '');
-    
-                    // Auto-format as user types
                     const parts = value.split('/');
                     let formatted = '';
-                    
                     if (parts[0]) {
-                      // Day: max 2 digits, max value 31
                       let day = parts[0].slice(0, 2);
                       if (parseInt(day) > 31) day = '31';
                       formatted = day;
-                      
                       if (parts.length > 1) {
                         formatted += '/';
-                        // Month: max 2 digits, max value 12
                         let month = parts[1].slice(0, 2);
                         if (parseInt(month) > 12) month = '12';
                         formatted += month;
-                        
                         if (parts.length > 2) {
                           formatted += '/';
-                          // Year: max 4 digits
                           formatted += parts[2].slice(0, 4);
                         }
                       }
                     }
-                    
-                    // Limit to 10 characters (DD/MM/YYYY)
                     if (formatted.length <= 10) {
                       updateAutorisationField(index, 'DateAutorisation', formatted);
                     }
@@ -562,11 +602,13 @@ export function StationForm({ mode, station, onSaved, onCancel }: StationFormPro
       </fieldset>
 
       {/* Capacités de Stockage */}
-      <fieldset className="space-y-6">
-        <legend className="text-lg font-semibold border-b pb-2 w-full text-gray-900">
-          Capacités de Stockage
+      <fieldset className="space-y-4 bg-white p-4 rounded-lg shadow-sm border">
+        <legend className="text-lg font-semibold pb-1 flex items-center gap-2">
+          <span className="text-2xl">🧱</span>
+          <span>Capacités de Stockage</span>
         </legend>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <p className="text-sm text-gray-500">Entrez les capacités en tonnes.</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
           <Input
             label="Capacité Gasoil (Tonnes)"
             name="CapaciteGasoil"
@@ -575,6 +617,7 @@ export function StationForm({ mode, station, onSaved, onCancel }: StationFormPro
             value={form.CapaciteGasoil || '0'}
             onChange={(e) => updateField('CapaciteGasoil', e.target.value)}
             error={errors.CapaciteGasoil}
+            placeholder="0"
           />
           <Input
             label="Capacité SSP (Tonnes)"
@@ -584,16 +627,20 @@ export function StationForm({ mode, station, onSaved, onCancel }: StationFormPro
             value={form.CapaciteSSP || '0'}
             onChange={(e) => updateField('CapaciteSSP', e.target.value)}
             error={errors.CapaciteSSP}
+            placeholder="0"
           />
         </div>
       </fieldset>
 
       {/* Autres Informations */}
-      <fieldset className="space-y-6">
-        <legend className="text-lg font-semibold border-b pb-2 w-full text-gray-900">
-          Autres Informations
+      <fieldset className="space-y-4 bg-white p-4 rounded-lg shadow-sm border">
+        <legend className="text-lg font-semibold pb-1 flex items-center gap-2">
+          <span className="text-2xl">ℹ️</span>
+          <span>Autres Informations</span>
         </legend>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <p className="text-sm text-gray-500">Informations additionnelles pour la fiche station.</p>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
           <Select
             label="Type de Gérance"
             value={form.TypeGerance || ''}
@@ -625,6 +672,7 @@ export function StationForm({ mode, station, onSaved, onCancel }: StationFormPro
             value={form.NombreVolucompteur || '0'}
             onChange={(e) => updateField('NombreVolucompteur', e.target.value)}
             error={errors.NombreVolucompteur}
+            placeholder="0"
           />
           <div className="col-span-2">
             <Textarea
@@ -633,19 +681,26 @@ export function StationForm({ mode, station, onSaved, onCancel }: StationFormPro
               value={form.Commentaires || ''}
               onChange={(e) => updateField('Commentaires', e.target.value)}
               error={errors.Commentaires}
+              // @ts-ignore - pass placeholder prop if Textarea supports it
+              placeholder="Notes internes, remarques, etc."
             />
           </div>
         </div>
       </fieldset>
 
-      <div className="flex items-center gap-3">
-        <Button type="submit" disabled={submitting || loading}>
-          {mode === 'create' ? 'Créer la station' : 'Enregistrer les modifications'}
-        </Button>
-        <Button type="button" variant="outline" onClick={handleCancel} disabled={submitting || loading}>
-          Annuler
-        </Button>
-        {submitting && <span className="text-sm text-gray-500">Enregistrement…</span>}
+      <div className="flex flex-col md:flex-row items-center gap-3">
+        <div className="flex items-center gap-3">
+          <Button type="submit" disabled={submitting || loading}>
+            {mode === 'create' ? 'Créer la station' : 'Enregistrer les modifications'}
+          </Button>
+          <Button type="button" variant="outline" onClick={handleCancel} disabled={submitting || loading}>
+            Annuler
+          </Button>
+        </div>
+        <div className="mt-2 md:mt-0 md:ml-auto text-sm text-gray-500">
+          {submitting && <span>Enregistrement…</span>}
+          {!submitting && <span>Vérifiez les champs avant d'enregistrer</span>}
+        </div>
       </div>
     </form>
   );

@@ -8,29 +8,26 @@ export function useArchiveStation() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const archiveStation = useCallback(async (stationId: string) => {
+  const changeStationStatus = useCallback(async (stationId: string, statut: string) => {
     setLoading(true);
     setError(null);
 
     try {
-      console.log(`Archiving station ${stationId}...`);
-      
+      console.log(`Setting station ${stationId} status to "${statut}"...`);
       const stationRef = doc(db, COLLECTIONS.STATIONS, stationId);
-      
-      await updateDoc(stationRef, {
-        Statut: 'archivé'
-      });
-      
-      console.log('✅ Station archived successfully');
-      
+      await updateDoc(stationRef, { Statut: statut });
+      console.log('✅ Station status updated successfully');
     } catch (err: any) {
-      console.error('Error archiving station:', err);
-      setError(`Failed to archive station: ${err.message}`);
+      console.error('Error updating station status:', err);
+      setError(`Failed to update station status: ${err?.message || String(err)}`);
       throw err;
     } finally {
       setLoading(false);
     }
   }, []);
 
-  return { archiveStation, loading, error };
+  const archiveStation = useCallback((stationId: string) => changeStationStatus(stationId, 'archivé'), [changeStationStatus]);
+  const unarchiveStation = useCallback((stationId: string) => changeStationStatus(stationId, 'en activité'), [changeStationStatus]);
+
+  return { archiveStation, unarchiveStation, loading, error };
 }

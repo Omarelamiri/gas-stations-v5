@@ -21,7 +21,7 @@ export default function StationDetailPage() {
   const router = useRouter();
   const { stations, loading: stationsLoading, error: stationsError, refetch } = useStations();
   const { analyses, loading: analysesLoading, error: analysesError, refetch: refetchAnalyses } = useAnalysesIndex(id);
-  const { archiveStation, loading: archiveLoading } = useArchiveStation();
+  const { archiveStation, unarchiveStation, loading: archiveLoading } = useArchiveStation();
 
   const [station, setStation] = useState<StationWithDetails | null>(null);
   const [showStationForm, setShowStationForm] = useState(false);
@@ -79,17 +79,22 @@ export default function StationDetailPage() {
   const handleArchive = async () => {
     if (!station || archiveLoading) return;
 
-    if (!confirm("Êtes-vous sûr de vouloir archiver cette station ?")) {
-      return;
-    }
+    const willUnarchive = station.station.Statut === 'archivé';
+    const confirmMsg = willUnarchive
+      ? "Êtes-vous sûr de vouloir déarchiver cette station ?"
+      : "Êtes-vous sûr de vouloir archiver cette station ?";
+
+    if (!confirm(confirmMsg)) return;
 
     try {
-      await archiveStation(station.station.StationID);
+      if (willUnarchive) {
+        await unarchiveStation(station.station.StationID);
+      } else {
+        await archiveStation(station.station.StationID);
+      }
       await refetch();
-      // Optionally redirect or show a success message
-      // router.push('/stations');
     } catch (error) {
-      console.error('Failed to archive station:', error);
+      console.error('Failed to change station status:', error);
     }
   };
 
@@ -139,11 +144,13 @@ export default function StationDetailPage() {
           <Button onClick={handleEditStation} disabled={isArchived}>
             Modifier la station
           </Button>
-          {!isArchived && (
-            <Button onClick={handleArchive} variant="danger" disabled={archiveLoading}>
-              {archiveLoading ? 'Archivage...' : 'Archiver'}
-            </Button>
-          )}
+          <Button
+            onClick={handleArchive}
+            variant={isArchived ? 'default' : 'danger'}
+            disabled={archiveLoading}
+          >
+            {archiveLoading ? (isArchived ? 'Déarchivage...' : 'Archivage...') : (isArchived ? 'Déarchiver' : 'Archiver')}
+          </Button>
         </div>
       </div>
 

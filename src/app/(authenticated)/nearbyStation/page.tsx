@@ -18,10 +18,12 @@ import { getProprietaireName } from '@/utils/format';
 proj4.defs('EPSG:26191', '+proj=lcc +lat_1=33.3 +lat_0=33.3 +lon_0=-5.4 +k_0=0.999625769 +x_0=500000 +y_0=300000 +ellps=clrk80ign +towgs84=31,146,47,0,0,0,0 +units=m +no_defs');
 proj4.defs('EPSG:4326', '+proj=longlat +datum=WGS84 +no_defs');
 
-// Helper function to format number with thousand separator (space)
-const formatNumberWithSpaces = (value: string): string => {
-  const numericValue = value.replace(/\D/g, ''); // Remove non-digits
-  return numericValue.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+// Helper function to format number with thousand separator (space) and optional decimals
+const formatNumberWithSpaces = (value: number, decimals: number = 0): string => {
+  const fixedValue = value.toFixed(decimals);
+  const [integerPart, decimalPart] = fixedValue.split('.');
+  const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+  return decimals > 0 ? `${formattedInteger}.${decimalPart}` : formattedInteger;
 };
 
 // Helper function to parse number with spaces
@@ -58,10 +60,12 @@ export default function NearbyStationsPage() {
         { header: 'Type', key: 'type', width: 15 },
         { header: 'Latitude', key: 'latitude', width: 15 },
         { header: 'Longitude', key: 'longitude', width: 15 },
+        { header: 'Coordonnées Lambert', key: 'lambert', width: 30 },
         { header: 'Province', key: 'province', width: 15 },
         { header: 'Commune', key: 'commune', width: 25 },
         { header: 'Propriétaire', key: 'Proprietaire', width: 25 },
         { header: 'Gérant', key: 'gerant', width: 25 },
+        { header: 'Date Création', key: 'DateCreation', width: 15 },
         { header: 'Distance (km)', key: 'distance', width: 15 },
         { header: 'Nombre de volucompteur', key: 'nombreVolucompteur', width: 20 },
         { header: 'Capacité Gasoil', key: 'capaciteGasoil', width: 15 },
@@ -78,16 +82,37 @@ export default function NearbyStationsPage() {
         const capaciteGasoil = station.capacites.find(c => c.TypeCarburant === 'Gasoil')?.CapaciteLitres || 0;
         const capaciteSSP = station.capacites.find(c => c.TypeCarburant === 'SSP')?.CapaciteLitres || 0;
 
+        // Compute Lambert coordinates
+        let lambert = 'Coordonnées invalides';
+        const lat = station.station.Latitude;
+        const lon = station.station.Longitude;
+        if (typeof lat === 'number' && typeof lon === 'number' && !isNaN(lat) && !isNaN(lon)) {
+          try {
+            const [x, y] = proj4('EPSG:4326', 'EPSG:26191', [lon, lat]);
+            if (!isNaN(x) && !isNaN(y)) {
+              const formattedX = formatNumberWithSpaces(x, 2);
+              const formattedY = formatNumberWithSpaces(y, 2);
+              lambert = `X: ${formattedX}\nY: ${formattedY}`;
+            }
+          } catch (error) {
+            console.error('Conversion error for station:', station.station.Code, error);
+          }
+        }
+
         worksheet.addRow({
           code: station.station.Code || '-',
           marque: station.marque?.Marque || '-',
           type: station.station.Type || '-',
           latitude: station.station.Latitude || '-',
           longitude: station.station.Longitude || '-',
+          lambert: lambert,
           province: station.province.NomProvince || '-',
           commune: station.commune.NomCommune || '-',
           Proprietaire: getProprietaireName(station) || '',
           gerant: station.gerant?.fullName || `${station.gerant?.PrenomGerant || ''} ${station.gerant?.NomGerant || ''}`.trim() || '-',
+          DateCreation: station.creationAutorisation?.DateAutorisation
+            ? new Date(station.creationAutorisation.DateAutorisation).toLocaleDateString()
+            : '',
           distance: distanceValue,
           nombreVolucompteur: station.station.NombreVolucompteur || 0,
           capaciteGasoil: capaciteGasoil || '-',
@@ -95,6 +120,10 @@ export default function NearbyStationsPage() {
           statut: station.station.Statut || '-',
         });
       });
+
+      // Enable wrap text for the Lambert column
+      const lambertColumn = worksheet.getColumn('lambert');
+      lambertColumn.alignment = { wrapText: true };
 
       const buffer = await workbook.xlsx.writeBuffer();
       const blob = new Blob([buffer], { 
@@ -272,7 +301,7 @@ export default function NearbyStationsPage() {
                   <Input
                     type="text"
                     placeholder="X (84 026 ... 350 738)"
-                    value={xCoord ? formatNumberWithSpaces(xCoord) : ''}
+                    value={xCoord ? formatNumberWithSpaces(Number(xCoord)) : ''}
                     onChange={handleXCoordChange}
                     className={`w-full ${xError ? 'border-red-500' : ''}`}
                   />
@@ -283,7 +312,7 @@ export default function NearbyStationsPage() {
                   <Input
                     type="text"
                     placeholder="Y (21 241 ... 255 390)"
-                    value={yCoord ? formatNumberWithSpaces(yCoord) : ''}
+                    value={yCoord ? formatNumberWithSpaces(Number(yCoord)) : ''}
                     onChange={handleYCoordChange}
                     className={`w-full ${yError ? 'border-red-500' : ''}`}
                   />
