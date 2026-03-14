@@ -8,6 +8,7 @@ import {
   writeBatch,
   runTransaction,
 } from 'firebase/firestore';
+import { parseDateString } from '@/utils/format';
 import { db } from '@/lib/firebase/config';
 import {
   Station,
@@ -270,12 +271,13 @@ export function useCreateStation() {
         if (autoData.NumeroAutorisation.trim()) {
           const autoId = generateUUID();
           const autoRef = doc(db, COLLECTIONS.AUTORISATIONS, autoId).withConverter(autorisationConverter);
+          const parsedDate = autoData.DateAutorisation ? parseDateString(autoData.DateAutorisation) : null;
           const autorisation: Autorisation = {
             AutorisationID: autoId,
             StationID: stationId,
             TypeAutorisation: autoData.TypeAutorisation,
             NumeroAutorisation: autoData.NumeroAutorisation.trim(),
-            DateAutorisation: autoData.DateAutorisation ? new Date(autoData.DateAutorisation) : null,
+            DateAutorisation: parsedDate,
           };
           batch.set(autoRef, autorisation);
         }
