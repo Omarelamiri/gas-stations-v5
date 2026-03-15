@@ -12,13 +12,6 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-// Add debugging to see if config is loaded
-console.log('Firebase Config:', {
-  apiKey: firebaseConfig.apiKey ? 'Set' : 'Missing',
-  authDomain: firebaseConfig.authDomain ? 'Set' : 'Missing',
-  projectId: firebaseConfig.projectId ? 'Set' : 'Missing',
-});
-
 // Check if all required config values are present
 const requiredFields = ['apiKey', 'authDomain', 'projectId'];
 const missingFields = requiredFields.filter(field => !firebaseConfig[field as keyof typeof firebaseConfig]);
@@ -32,8 +25,3 @@ const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
 
 export const auth = getAuth(app);
 export const db = getFirestore(app);
-
-// Add connection test
-console.log('Firebase initialized:', !!app);
-console.log('Auth instance:', !!auth);
-console.log('Firestore instance:', !!db);

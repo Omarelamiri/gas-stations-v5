@@ -23,24 +23,17 @@ export default function StationsByBrandChart({ stations }: StationsByBrandChartP
   }, [stations]);
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Stations par Marque</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="h-80">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={chartDataByMarque} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
-              {/* The YAxis is now configured to only show integers */}
-              <YAxis allowDecimals={false} />
-              <Tooltip />
-              <Bar dataKey="count" fill="#3B82F6" />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </CardContent>
-    </Card>
+    <div className="h-80">
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={chartDataByMarque} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis dataKey="name" />
+          {/* The YAxis is now configured to only show integers */}
+          <YAxis allowDecimals={false} />
+          <Tooltip />
+          <Bar dataKey="count" fill="#3B82F6" />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
   );
 }
