@@ -81,8 +81,11 @@ export default function MapPreview({ stations }: MapPreviewProps) {
   const canUseMap = usage ? !usage.maps.exceeded : true;
   
   // Don't load the script if we can't use the map
+  if (!canUseMap) {
+  return null;   // ← or <></>, or a fallback placeholder UI like "Map disabled", etc.
+}
   const { isLoaded } = useLoadScript({
-    googleMapsApiKey: canUseMap ? (process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '') : '',
+    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
   });
   
   const [selected, setSelected] = useState<StationWithDetails | null>(null);
