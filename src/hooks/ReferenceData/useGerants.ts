@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { collection, query, orderBy, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
-import { collection, query, onSnapshot, FirestoreError } from 'firebase/firestore';
 import { Gerant } from '@/types/station';
+import { getReferenceData, invalidateReferenceData } from '@/lib/referenceCache';
 
 const COLLECTIONS = {
   GERANTS: 'gerants',
@@ -14,34 +15,48 @@ export function useGerants() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const q = query(collection(db, COLLECTIONS.GERANTS));
-    const unsubscribe = onSnapshot(
-      q,
-      (snapshot) => {
-        const gerantData = snapshot.docs.map((doc) => {
-          const data = doc.data();
-          return {
-            GerantID: doc.id,
-            CINGerant: data.CINGerant || '',
-            PrenomGerant: data.PrenomGerant || '',
-            NomGerant: data.NomGerant || '',
-            Telephone: data.Telephone || '',
-          } as Gerant;
-        });
-        setGerants(gerantData);
-        setLoading(false);
-        setError(null);
-      },
-      (err: FirestoreError) => {
-        console.error('Error fetching gerants:', err.message);
-        setError(err.message);
-        setLoading(false);
-      }
-    );
+  const fetchGerants = async (forceRefresh = false) => {
+    setLoading(true);
+    try {
+      const data = await getReferenceData<Gerant>(
+        'gerants:all',
+        async () => {
+          const q = query(collection(db, COLLECTIONS.GERANTS), orderBy('NomGerant'));
+          const snap = await getDocs(q);
+          return snap.docs.map((doc) => {
+            const data = doc.data();
+            return {
+              GerantID: doc.id,
+              CINGerant: data.CINGerant || '',
+              PrenomGerant: data.PrenomGerant || '',
+              NomGerant: data.NomGerant || '',
+              Telephone: data.Telephone || '',
+            } as Gerant;
+          });
+        },
+        undefined,
+        forceRefresh
+      );
+      setGerants(data);
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching gerants:', err);
+      setError(err instanceof Error ? err.message : 'Unknown error fetching gerants');
+      setGerants([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    return () => unsubscribe();
+  useEffect(() => {
+    fetchGerants();
   }, []);
 
-  return { gerants, loading, error };
+  return {
+    gerants,
+    loading,
+    error,
+    refetch: () => fetchGerants(true),
+    invalidate: () => invalidateReferenceData('gerants:'),
+  };
 }

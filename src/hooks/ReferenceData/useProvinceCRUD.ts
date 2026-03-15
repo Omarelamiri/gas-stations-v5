@@ -1,8 +1,9 @@
 import { useCallback, useState } from 'react';
-import { collection, doc, setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { doc, setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import { Province } from '@/types/station';
 import { generateUUID } from '@/utils/uuid';
+import { invalidateReferenceData } from '@/lib/referenceCache';
 
 const COLLECTIONS = {
   PROVINCES: 'provinces',
@@ -22,8 +23,10 @@ export function useProvinceCRUD() {
         ...data
       };
       await setDoc(doc(db, COLLECTIONS.PROVINCES, provinceId), payload);
-    } catch (err: any) {
-      setError(`Failed to create province: ${err.message}`);
+      invalidateReferenceData('provinces:');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      setError(`Failed to create province: ${message}`);
       throw err;
     } finally {
       setLoading(false);
@@ -37,8 +40,10 @@ export function useProvinceCRUD() {
       const payload = { ...data };
       delete payload.ProvinceID; // Remove ID from update payload
       await updateDoc(doc(db, COLLECTIONS.PROVINCES, id), payload);
-    } catch (err: any) {
-      setError(`Failed to update province: ${err.message}`);
+      invalidateReferenceData('provinces:');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      setError(`Failed to update province: ${message}`);
       throw err;
     } finally {
       setLoading(false);
@@ -50,8 +55,10 @@ export function useProvinceCRUD() {
     setError(null);
     try {
       await deleteDoc(doc(db, COLLECTIONS.PROVINCES, id));
-    } catch (err: any) {
-      setError(`Failed to delete province: ${err.message}`);
+      invalidateReferenceData('provinces:');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      setError(`Failed to delete province: ${message}`);
       throw err;
     } finally {
       setLoading(false);

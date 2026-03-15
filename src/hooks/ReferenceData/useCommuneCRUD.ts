@@ -1,14 +1,9 @@
 import { useCallback, useState } from 'react';
-import {
-  collection,
-  doc,
-  setDoc,
-  updateDoc,
-  deleteDoc,
-} from 'firebase/firestore';
+import { doc, setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import { Commune } from '@/types/station';
 import { generateUUID } from '@/utils/uuid';
+import { invalidateReferenceData } from '@/lib/referenceCache';
 
 const COLLECTIONS = {
   COMMUNES: 'communes',
@@ -28,8 +23,10 @@ export function useCommuneCRUD() {
         ...data
       };
       await setDoc(doc(db, COLLECTIONS.COMMUNES, communeId), payload);
-    } catch (err: any) {
-      setError(`Failed to create commune: ${err.message}`);
+      invalidateReferenceData('communes:');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      setError(`Failed to create commune: ${message}`);
       throw err;
     } finally {
       setLoading(false);
@@ -43,8 +40,10 @@ export function useCommuneCRUD() {
       const payload = { ...data };
       delete payload.CommuneID; // Remove ID from update payload
       await updateDoc(doc(db, COLLECTIONS.COMMUNES, id), payload);
-    } catch (err: any) {
-      setError(`Failed to update commune: ${err.message}`);
+      invalidateReferenceData('communes:');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      setError(`Failed to update commune: ${message}`);
       throw err;
     } finally {
       setLoading(false);
@@ -56,8 +55,10 @@ export function useCommuneCRUD() {
     setError(null);
     try {
       await deleteDoc(doc(db, COLLECTIONS.COMMUNES, id));
-    } catch (err: any) {
-      setError(`Failed to delete commune: ${err.message}`);
+      invalidateReferenceData('communes:');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      setError(`Failed to delete commune: ${message}`);
       throw err;
     } finally {
       setLoading(false);

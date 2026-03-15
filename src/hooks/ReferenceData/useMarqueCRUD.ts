@@ -1,8 +1,9 @@
 import { useCallback, useState } from 'react';
-import { collection, doc, setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { doc, setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import { Marque } from '@/types/station';
 import { generateUUID } from '@/utils/uuid';
+import { invalidateReferenceData } from '@/lib/referenceCache';
 
 const COLLECTIONS = {
   MARQUES: 'marques',
@@ -22,8 +23,10 @@ export function useMarqueCRUD() {
         ...data
       };
       await setDoc(doc(db, COLLECTIONS.MARQUES, marqueId), payload);
-    } catch (err: any) {
-      setError(`Failed to create marque: ${err.message}`);
+      invalidateReferenceData('marques:');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      setError(`Failed to create marque: ${message}`);
       throw err;
     } finally {
       setLoading(false);
@@ -37,8 +40,10 @@ export function useMarqueCRUD() {
       const payload = { ...data };
       delete payload.MarqueID; // Remove ID from update payload
       await updateDoc(doc(db, COLLECTIONS.MARQUES, id), payload);
-    } catch (err: any) {
-      setError(`Failed to update marque: ${err.message}`);
+      invalidateReferenceData('marques:');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      setError(`Failed to update marque: ${message}`);
       throw err;
     } finally {
       setLoading(false);
@@ -50,8 +55,10 @@ export function useMarqueCRUD() {
     setError(null);
     try {
       await deleteDoc(doc(db, COLLECTIONS.MARQUES, id));
-    } catch (err: any) {
-      setError(`Failed to delete marque: ${err.message}`);
+      invalidateReferenceData('marques:');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      setError(`Failed to delete marque: ${message}`);
       throw err;
     } finally {
       setLoading(false);

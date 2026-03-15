@@ -1,9 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { collection, query, orderBy, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
-import { collection, query, onSnapshot, orderBy, where, getDocs, FirestoreError } from 'firebase/firestore';
-import { Proprietaire, ProprietairePhysique, ProprietaireMorale } from '@/types/station';
+import {
+  Proprietaire,
+  ProprietairePhysique,
+  ProprietaireMorale,
+} from '@/types/station';
+import { getReferenceData, invalidateReferenceData } from '@/lib/referenceCache';
 
 const COLLECTIONS = {
   PROPRIETAIRES: 'proprietaires',
@@ -16,79 +21,83 @@ export function useProprietaires() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const q = query(collection(db, COLLECTIONS.PROPRIETAIRES), orderBy('TypeProprietaire'));
-    const unsubscribe = onSnapshot(
-      q,
-      async (snapshot) => {
-        try {
-          const proprietaireList = await Promise.all(
-            snapshot.docs.map(async (proprietaireDoc) => {
-              const proprietaireData = proprietaireDoc.data();
-              const proprietaire: Proprietaire = {
-                ProprietaireID: proprietaireDoc.id,
-                TypeProprietaire: proprietaireData.TypeProprietaire || 'Physique',
-              };
-              let details: ProprietairePhysique | ProprietaireMorale | null = null;
+  const fetchProprietaires = async (forceRefresh = false) => {
+    setLoading(true);
+    try {
+      const proprietaireDocs = await getReferenceData<Proprietaire>(
+        'proprietaires:all',
+        async () => {
+          const q = query(collection(db, COLLECTIONS.PROPRIETAIRES), orderBy('TypeProprietaire'));
+          const snapshot = await getDocs(q);
+          return snapshot.docs.map((doc) => ({
+            ProprietaireID: doc.id,
+            TypeProprietaire: doc.data().TypeProprietaire || 'Physique',
+          } as Proprietaire));
+        },
+        undefined,
+        forceRefresh
+      );
 
-              if (proprietaire.TypeProprietaire === 'Physique') {
-                const detailsSnapshot = await getDocs(
-                  query(collection(db, COLLECTIONS.PROPRIETAIRES_PHYSIQUES), where('ProprietaireID', '==', proprietaire.ProprietaireID))
-                );
-                if (!detailsSnapshot.empty) {
-                  const detailsData = detailsSnapshot.docs[0].data();
-                  // Validate required fields for ProprietairePhysique
-                  if ('ProprietaireID' in detailsData && 'NomProprietaire' in detailsData && 'PrenomProprietaire' in detailsData) {
-                    details = {
-                      id: detailsSnapshot.docs[0].id,
-                      ProprietaireID: detailsData.ProprietaireID,
-                      NomProprietaire: detailsData.NomProprietaire || '',
-                      PrenomProprietaire: detailsData.PrenomProprietaire || '',
-                    } as ProprietairePhysique;
-                  } else {
-                    console.warn(`Invalid ProprietairePhysique data for ID ${proprietaire.ProprietaireID}:`, detailsData);
-                  }
-                }
-              } else if (proprietaire.TypeProprietaire === 'Morale') {
-                const detailsSnapshot = await getDocs(
-                  query(collection(db, COLLECTIONS.PROPRIETAIRES_MORALES), where('ProprietaireID', '==', proprietaire.ProprietaireID))
-                );
-                if (!detailsSnapshot.empty) {
-                  const detailsData = detailsSnapshot.docs[0].data();
-                  // Validate required fields for ProprietaireMorale
-                  if ('ProprietaireID' in detailsData && 'NomEntreprise' in detailsData) {
-                    details = {
-                      id: detailsSnapshot.docs[0].id,
-                      ProprietaireID: detailsData.ProprietaireID,
-                      NomEntreprise: detailsData.NomEntreprise || '',
-                    } as ProprietaireMorale;
-                  } else {
-                    console.warn(`Invalid ProprietaireMorale data for ID ${proprietaire.ProprietaireID}:`, detailsData);
-                  }
-                }
-              }
+      const [physiqueDetails, moraleDetails] = await Promise.all([
+        getReferenceData<ProprietairePhysique>(
+          'proprietaires_physiques:all',
+          async () => {
+            const q = query(collection(db, COLLECTIONS.PROPRIETAIRES_PHYSIQUES));
+            const snapshot = await getDocs(q);
+            return snapshot.docs.map((doc) => ({ id: doc.id, ...(doc.data() as ProprietairePhysique) } as ProprietairePhysique));
+          },
+          undefined,
+          forceRefresh
+        ),
+        getReferenceData<ProprietaireMorale>(
+          'proprietaires_morales:all',
+          async () => {
+            const q = query(collection(db, COLLECTIONS.PROPRIETAIRES_MORALES));
+            const snapshot = await getDocs(q);
+            return snapshot.docs.map((doc) => ({ id: doc.id, ...(doc.data() as ProprietaireMorale) } as ProprietaireMorale));
+          },
+          undefined,
+          forceRefresh
+        ),
+      ]);
 
-              return { ...proprietaire, details };
-            })
-          );
-          setProprietaires(proprietaireList);
-          setLoading(false);
-          setError(null);
-        } catch (err) {
-          console.error('Error processing proprietaires:', err);
-          setError(err instanceof Error ? err.message : 'Unknown error processing proprietaires');
-          setLoading(false);
-        }
-      },
-      (err: FirestoreError) => {
-        console.error('Firestore error:', err.message);
-        setError(err.message);
-        setLoading(false);
+      const detailsByProprietaireId = new Map<string, ProprietairePhysique | ProprietaireMorale>();
+      for (const d of physiqueDetails) {
+        detailsByProprietaireId.set(d.ProprietaireID, d);
       }
-    );
+      for (const d of moraleDetails) {
+        detailsByProprietaireId.set(d.ProprietaireID, d);
+      }
 
-    return () => unsubscribe();
+      const proprietaireList = proprietaireDocs.map((p) => ({
+        ...p,
+        details: detailsByProprietaireId.get(p.ProprietaireID) ?? null,
+      }));
+
+      setProprietaires(proprietaireList);
+      setLoading(false);
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching proprietaires:', err);
+      setError(err instanceof Error ? err.message : 'Unknown error fetching proprietaires');
+      setProprietaires([]);
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProprietaires();
   }, []);
 
-  return { proprietaires, loading, error };
+  return {
+    proprietaires,
+    loading,
+    error,
+    refetch: () => fetchProprietaires(true),
+    invalidate: () => {
+      invalidateReferenceData('proprietaires:');
+      invalidateReferenceData('proprietaires_physiques:');
+      invalidateReferenceData('proprietaires_morales:');
+    },
+  };
 }

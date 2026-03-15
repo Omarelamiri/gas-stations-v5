@@ -4,9 +4,6 @@ import { useCallback, useState } from 'react';
 import {
   collection,
   doc,
-  setDoc,
-  updateDoc,
-  deleteDoc,
   writeBatch,
   query,
   where,
@@ -15,6 +12,7 @@ import {
   serverTimestamp,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
+import { invalidateReferenceData } from '@/lib/referenceCache';
 import {
   Proprietaire,
   ProprietairePhysique,
@@ -70,8 +68,12 @@ export function useProprietaireCRUD() {
       }
 
       await batch.commit();
-    } catch (err: any) {
-      setError(`Failed to create proprietaire: ${err.message}`);
+      invalidateReferenceData('proprietaires:');
+      invalidateReferenceData('proprietaires_physiques:');
+      invalidateReferenceData('proprietaires_morales:');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      setError(`Failed to create proprietaire: ${message}`);
       throw err;
     } finally {
       setLoading(false);
@@ -149,8 +151,12 @@ export function useProprietaireCRUD() {
       }
 
       await batch.commit();
-    } catch (err: any) {
-      setError(`Failed to update proprietaire: ${err.message}`);
+      invalidateReferenceData('proprietaires:');
+      invalidateReferenceData('proprietaires_physiques:');
+      invalidateReferenceData('proprietaires_morales:');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      setError(`Failed to update proprietaire: ${message}`);
       throw err;
     } finally {
       setLoading(false);
@@ -175,8 +181,12 @@ export function useProprietaireCRUD() {
       moraleSnapshot.docs.forEach(d => batch.delete(d.ref));
 
       await batch.commit();
-    } catch (err: any) {
-      setError(`Failed to delete proprietaire: ${err.message}`);
+      invalidateReferenceData('proprietaires:');
+      invalidateReferenceData('proprietaires_physiques:');
+      invalidateReferenceData('proprietaires_morales:');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      setError(`Failed to delete proprietaire: ${message}`);
       throw err;
     } finally {
       setLoading(false);

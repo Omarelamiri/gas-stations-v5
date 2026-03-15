@@ -1,8 +1,9 @@
 import { useCallback, useState } from 'react';
-import { collection, doc, setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { doc, setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import { Gerant } from '@/types/station';
 import { generateUUID } from '@/utils/uuid';
+import { invalidateReferenceData } from '@/lib/referenceCache';
 
 const COLLECTIONS = {
   GERANTS: 'gerants',
@@ -22,8 +23,10 @@ export function useGerantCRUD() {
         ...data
       };
       await setDoc(doc(db, COLLECTIONS.GERANTS, gerantId), payload);
-    } catch (err: any) {
-      setError(`Failed to create gerant: ${err.message}`);
+      invalidateReferenceData('gerants:');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      setError(`Failed to create gerant: ${message}`);
       throw err;
     } finally {
       setLoading(false);
@@ -37,8 +40,10 @@ export function useGerantCRUD() {
       const payload = { ...data };
       delete payload.GerantID; // Remove ID from update payload
       await updateDoc(doc(db, COLLECTIONS.GERANTS, id), payload);
-    } catch (err: any) {
-      setError(`Failed to update gerant: ${err.message}`);
+      invalidateReferenceData('gerants:');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      setError(`Failed to update gerant: ${message}`);
       throw err;
     } finally {
       setLoading(false);
@@ -50,8 +55,10 @@ export function useGerantCRUD() {
     setError(null);
     try {
       await deleteDoc(doc(db, COLLECTIONS.GERANTS, id));
-    } catch (err: any) {
-      setError(`Failed to delete gerant: ${err.message}`);
+      invalidateReferenceData('gerants:');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      setError(`Failed to delete gerant: ${message}`);
       throw err;
     } finally {
       setLoading(false);
