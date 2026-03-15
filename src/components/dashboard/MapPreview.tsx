@@ -1,11 +1,10 @@
 // src/components/dashboard/MapPreview.tsx
 import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react';
-import { GoogleMap, useLoadScript, MarkerF, InfoWindow } from '@react-google-maps/api';
+import { GoogleMap, MarkerF, InfoWindow } from '@react-google-maps/api';
 import Link from 'next/link';
 import { StationWithDetails } from '@/types/station';
 import { getProprietaireName } from '@/utils/format';
 import { useApiUsage } from '@/hooks/useApiUsage';
-import { incrementApiUsage } from '@/lib/firebase/apiUsage';
 import { Button } from '@/components/ui';
 
 interface MapPreviewProps {
@@ -63,7 +62,7 @@ function getColorForMarque(marque: string): string {
 function getMarkerIcon(marque: string): google.maps.Symbol {
   const color = getColorForMarque(marque);
   return {
-    path: window.google.maps.SymbolPath.CIRCLE,
+    path: google.maps.SymbolPath.CIRCLE,
     fillColor: color,
     fillOpacity: 1,
     strokeWeight: 2,
@@ -76,21 +75,8 @@ export default function MapPreview({ stations }: MapPreviewProps) {
   const { usage } = useApiUsage();
   const [mapUsed, setMapUsed] = useState(false);
   const [mapType, setMapType] = useState<'roadmap' | 'satellite'>('roadmap');
-  
-  // Check if we can use the Maps API
-  const canUseMap = usage ? !usage.maps.exceeded : true;
-  
-  // Don't load the script if we can't use the map
-  if (!canUseMap) {
-  return null;   // ← or <></>, or a fallback placeholder UI like "Map disabled", etc.
-}
-  const { isLoaded } = useLoadScript({
-    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
-  });
-  
   const [selected, setSelected] = useState<StationWithDetails | null>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
-
   const center = useMemo(() => ({ lat: 31.7917, lng: -7.0926 }), []);
 
   const mapOptions = useMemo(() => ({
@@ -110,22 +96,12 @@ export default function MapPreview({ stations }: MapPreviewProps) {
       },
       strictBounds: false,
     },
-    mapTypeId: mapType, 
-  }), [mapType]);  
+    mapTypeId: mapType,
+  }), [mapType]);
 
   const onLoad = useCallback((map: google.maps.Map) => {
     mapRef.current = map;
-    
-    // Increment usage counter when map loads (only once per component mount)
-    if (!mapUsed) {
-      incrementApiUsage('maps_js_api')
-        .then(() => {
-          setMapUsed(true);
-          console.log('Maps API usage incremented');
-        })
-        .catch(err => console.error('Failed to increment maps usage:', err));
-    }
-  }, [mapUsed]);
+  }, []);
 
   useEffect(() => {
     if (!mapRef.current || !window.google) return;
@@ -153,7 +129,7 @@ export default function MapPreview({ stations }: MapPreviewProps) {
     }
   }, [stations, center]);
 
-  // If quota is exceeded, show message
+  const canUseMap = usage ? !usage.maps.exceeded : true;
   if (!canUseMap) {
     return (
       <div className="h-full flex items-center justify-center bg-gray-100 rounded-lg">
@@ -168,8 +144,6 @@ export default function MapPreview({ stations }: MapPreviewProps) {
       </div>
     );
   }
-
-  if (!isLoaded) return <div>Chargement de la carte...</div>;
 
   return (
     <div className="relative h-full">

@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth/provider';
 import AuthenticatedLayout from '@/components/layout/AuthenticatedLayout';
+import MapsProvider from '@/lib/maps/MapsProvider';
 
 export default function ProtectedLayout({ children }: { children: React.ReactNode }) {
   const { currentUser, loading } = useAuth();
@@ -26,5 +27,9 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
   // If no user, we don't render children (redirect in effect)
   if (!currentUser) return null;
 
-  return <AuthenticatedLayout>{children}</AuthenticatedLayout>;
+  return (
+    <AuthenticatedLayout>
+      <MapsProvider>{children}</MapsProvider>
+    </AuthenticatedLayout>
+  );
 }
