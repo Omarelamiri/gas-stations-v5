@@ -2,7 +2,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { StationWithDetails } from '@/types/station';
 import { useStations } from './useStations';
-import { getApiUsage, canUseApi, incrementApiUsage } from '@/lib/firebase/apiUsage';
+import { getApiUsage, canUseApi, incrementApiUsage, QUOTAS } from '@/lib/firebase/apiUsage';
 
 const MAX_DRIVING_KM = 20;
 const MAX_DEST_PER_REQUEST = 25;
@@ -114,7 +114,7 @@ export function useNearbyStations() {
         // Check if we have enough quota
         if (!canUseApi('routes_api', usage.routes_api, totalRequests)) {
           setNearbyError(
-            `Quota Routes API dépassé. Limite quotidienne atteinte (${usage.routes_api}/${333}). Réinitialisation à minuit.`
+            `Quota Routes API dépassé. Limite quotidienne atteinte (${usage.routes_api}/${QUOTAS.routes_api}). Réinitialisation à minuit.`
           );
           setNearbyStations([]);
           return;
@@ -162,12 +162,12 @@ export function useNearbyStations() {
           // Increment usage for this chunk (1 request per destination)
           await incrementApiUsage('routes_api', chunk.length);
           
-          const results = data.results;
-          results.forEach((result: any, index: number) => {
+          const results: Array<{ status?: string; distance?: number }> = data.results;
+          results.forEach((result, index: number) => {
             const correspondingStation = chunk[index];
             let distanceKm = Infinity;
 
-            if (result.status === 'OK' && result.distance) {
+            if (result.status === 'OK' && typeof result.distance === 'number') {
               distanceKm = result.distance / 1000; // Convert meters to km
             }
             
@@ -195,9 +195,13 @@ export function useNearbyStations() {
           setNearbyError(`Aucune station trouvée à moins de ${MAX_DRIVING_KM} km par la route.`);
         }
 
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Erreur lors de la recherche des stations à proximité:', err);
-        setNearbyError(err.message || 'Erreur inconnue.');
+        if (err instanceof Error) {
+          setNearbyError(err.message || 'Erreur inconnue.');
+        } else {
+          setNearbyError('Erreur inconnue.');
+        }
       } finally {
         setNearbyLoading(false);
       }

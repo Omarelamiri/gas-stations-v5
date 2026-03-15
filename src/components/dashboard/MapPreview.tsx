@@ -73,7 +73,6 @@ function getMarkerIcon(marque: string): google.maps.Symbol {
 
 export default function MapPreview({ stations }: MapPreviewProps) {
   const { usage } = useApiUsage();
-  const [mapUsed, setMapUsed] = useState(false);
   const [mapType, setMapType] = useState<'roadmap' | 'satellite'>('roadmap');
   const [selected, setSelected] = useState<StationWithDetails | null>(null);
   const mapRef = useRef<google.maps.Map | null>(null);

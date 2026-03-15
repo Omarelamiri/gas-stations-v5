@@ -4,7 +4,7 @@ import { doc, getDoc, setDoc, increment } from 'firebase/firestore';
 
 export const QUOTAS = {
   maps_js_api: parseInt(process.env.MAPS_QUOTA ?? '100', 10), // Free tier limit
-  routes_api:   parseInt(process.env.ROUTES_QUOTA ?? '322', 10), // Free tier limit
+  routes_api: parseInt(process.env.ROUTES_QUOTA ?? '322', 10), // Free tier limit
 } as const;
 
 // Optional: Add runtime validation (recommended)
