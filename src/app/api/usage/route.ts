@@ -1,8 +1,12 @@
 // src/app/api/usage/route.ts
 import { NextResponse } from 'next/server';
 import { getApiUsage } from '@/lib/firebase/apiUsage';
+import { rateLimit, rateLimitResponse } from '@/lib/rateLimit';
 
-export async function GET() {
+export async function GET(request: Request) {
+  const rate = rateLimit(request, 40, 60 * 1000);
+  if (!rate.allowed) return rateLimitResponse(rate.remaining, rate.resetInMs);
+
   try {
     const usage = await getApiUsage();
     return NextResponse.json({

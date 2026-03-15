@@ -1,12 +1,13 @@
 // src/app/api/routes/route.ts
 import { NextResponse } from 'next/server';
+import { rateLimit, rateLimitResponse } from '@/lib/rateLimit';
 
 // --- CONFIGURATION ---
 const MAX_DESTINATIONS = 25;
 const CACHE_TTL_MS = 1000 * 60 * 5;
 
-type CacheEntry = { data: any; timestamp: number };
-const cache = (globalThis as any).__routesCache ||= new Map<string, CacheEntry>();
+type CacheEntry = { data: unknown; timestamp: number };
+const cache = (globalThis as unknown as { __routesCache?: Map<string, CacheEntry> }).__routesCache ||= new Map<string, CacheEntry>();
 
 function cleanupCache() {
   const now = Date.now();
@@ -19,8 +20,13 @@ function cleanupCache() {
 setInterval(cleanupCache, CACHE_TTL_MS);
 
 export async function POST(request: Request) {
+  const rate = rateLimit(request, 20, 60 * 1000);
+  if (!rate.allowed) {
+    return rateLimitResponse(rate.remaining, rate.resetInMs);
+  }
+
   try {
-    const body = await request.json();
+    const body = (await request.json()) as { origin?: { lat: number; lng: number }; destinations?: Array<{ lat: number; lng: number }> };
     const { origin, destinations } = body;
     const apiKey = process.env.GOOGLE_MAPS_API_KEY;
 
@@ -39,7 +45,7 @@ export async function POST(request: Request) {
     }
 
     // Check cache first
-    const cacheKey = `${origin.lat},${origin.lng}|${destinations.map((d: any) => `${d.lat},${d.lng}`).join('|')}`;
+    const cacheKey = `${origin.lat},${origin.lng}|${destinations.map(d => `${d.lat},${d.lng}`).join('|')}`;
     const cachedEntry = cache.get(cacheKey);
     const now = Date.now();
 
@@ -130,10 +136,11 @@ export async function POST(request: Request) {
 
     return NextResponse.json(responseData);
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Routes API proxy error:', error);
+    const message = error instanceof Error ? error.message : 'Internal Server Error';
     return NextResponse.json(
-      { error: error.message || 'Internal Server Error' },
+      { error: message },
       { status: 500 }
     );
   }
