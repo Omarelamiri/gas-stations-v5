@@ -9,6 +9,10 @@ import {
   query,
   where,
 } from 'firebase/firestore';
+
+function cleanFirestoreData<T extends Record<string, any>>(data: T): Partial<T> {
+  return Object.fromEntries(Object.entries(data).filter(([, value]) => value !== undefined)) as Partial<T>;
+}
 import { db } from '@/lib/firebase/config';
 import { COLLECTIONS } from '@/lib/firebase/collections';
 import {
@@ -145,11 +149,14 @@ export function useUpdateStation() {
 
       if (!gerantSnap.empty) {
         gerantId = gerantSnap.docs[0].id;
-        batch.update(gerantSnap.docs[0].ref, {
+        const gerantUpdate: Partial<Gerant> = {
           NomGerant: formData.NomGerant.trim(),
           PrenomGerant: formData.PrenomGerant.trim(),
-          Telephone: formData.Telephone.trim(),
-        });
+        };
+        if (formData.Telephone.trim()) {
+          gerantUpdate.Telephone = formData.Telephone.trim();
+        }
+        batch.update(gerantSnap.docs[0].ref, cleanFirestoreData(gerantUpdate));
       } else {
         gerantId = generateUUID();
         const newRef = doc(db, COLLECTIONS.GERANTS, gerantId).withConverter(gerantConverter);
@@ -158,9 +165,11 @@ export function useUpdateStation() {
           NomGerant: formData.NomGerant.trim(),
           PrenomGerant: formData.PrenomGerant.trim(),
           CINGerant: formData.CINGerant.trim(),
-          Telephone: formData.Telephone.trim(),
         };
-        batch.set(newRef, newGerant);
+        if (formData.Telephone.trim()) {
+          newGerant.Telephone = formData.Telephone.trim();
+        }
+        batch.set(newRef, cleanFirestoreData(newGerant));
       }
 
       /** -------------------------------
@@ -318,7 +327,7 @@ export function useUpdateStation() {
       };
 
       console.log('Updating station with data:', stationUpdateData);
-      batch.update(stationRef, stationUpdateData);
+      batch.update(stationRef, cleanFirestoreData(stationUpdateData));
 
       /** -------------------------------
        * 6. Update Autorisations

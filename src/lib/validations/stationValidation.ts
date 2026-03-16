@@ -1,5 +1,4 @@
-// src/lib/validations/stationValidation.ts
-import { parseDateString, isValidDateString } from '@/utils/format';
+import { z } from 'zod';
 import { StationFormData } from '@/types/station';
 
 type AutorisationError = Partial<Record<'TypeAutorisation' | 'NumeroAutorisation' | 'DateAutorisation', string>>;
@@ -10,123 +9,78 @@ export type NormalizedFormErrors = Partial<{
   submit?: string;
 };
 
-export function validateStationData(data: StationFormData): { 
-  isValid: boolean; 
-  errors: NormalizedFormErrors 
-} {
+export const stationSchema = z.object({
+  id: z.string().optional(),
+  NomStation: z.string(),
+  Adresse: z.string(),
+  Latitude: z.string().refine((v) => {
+    const n = Number(String(v).replace(',', '.'));
+    return Number.isFinite(n) && n >= -90 && n <= 90;
+  }, 'Latitude invalide (entre -90 et 90)'),
+  Longitude: z.string().refine((v) => {
+    const n = Number(String(v).replace(',', '.'));
+    return Number.isFinite(n) && n >= -180 && n <= 180;
+  }, 'Longitude invalide (entre -180 et 180)'),
+  Type: z.enum(['remplissage', 'service']),
+  Marque: z.string().min(1, 'Marque requise'),
+  RaisonSociale: z.string().min(1, 'Raison sociale requise'),
+  Province: z.string().min(1, 'Province requise'),
+  Commune: z.string().min(1, 'Commune requise'),
+  PrenomGerant: z.string(),
+  NomGerant: z.string(),
+  CINGerant: z.string(),
+  Telephone: z.string(),
+  TypeProprietaire: z.enum(['Physique', 'Morale']),
+  PrenomProprietaire: z.string(),
+  NomProprietaire: z.string(),
+  NomEntreprise: z.string(),
+  autorisations: z.array(
+    z.object({
+      TypeAutorisation: z.enum(['création', 'mise en service']),
+      NumeroAutorisation: z.string(),
+      DateAutorisation: z.string(),
+    })
+  ),
+  CapaciteGasoil: z.string(),
+  CapaciteSSP: z.string(),
+  TypeGerance: z.enum(['libre', 'direct', 'partenariat']),
+  Statut: z.enum(['en activité', 'en projet', 'en arrêt', 'archivé']),
+  Commentaires: z.string(),
+  NombreVolucompteur: z.string(),
+});
+
+export function mapZodErrorsToFormErrors(err: z.ZodError<StationFormData>): NormalizedFormErrors {
   const errors: NormalizedFormErrors = {};
 
-  // Required fields for general information
-  const required: (keyof StationFormData)[] = [
-    'NomStation',
-    'Adresse',
-    'Latitude',
-    'Longitude',
-    'Type',
-    'Marque',
-    'RaisonSociale',
-    'Commune',
-    'Province',
-    'NomGerant', 
-    'PrenomGerant', 
-    'CINGerant',
-    'Telephone',
-  ];
-  
-  for (const key of required) {
-    const v = data[key];
-    if (v === undefined || v === null || String(v).trim() === '') {
-      errors[key] = 'Champ obligatoire';
-    }
-  }
+  for (const issue of err.issues) {
+    if (issue.path.length === 0) continue;
 
-  // Validate coordinates
-  const toNumber = (s: string) => (s === '' ? null : Number(String(s).replace(/,/g, '.')));
-
-  const lat = toNumber(data.Latitude);
-  if (lat === null || !Number.isFinite(lat) || lat < -90 || lat > 90) {
-    errors.Latitude = 'Latitude invalide (entre -90 et 90)';
-  }
-
-  const lng = toNumber(data.Longitude);
-  if (lng === null || !Number.isFinite(lng) || lng < -180 || lng > 180) {
-    errors.Longitude = 'Longitude invalide (entre -180 et 180)';
-  }
-
-  // Validate TypeProprietaire
-  if (!['Physique', 'Morale'].includes(data.TypeProprietaire)) {
-    errors.TypeProprietaire = 'Champ obligatoire';
-  }
-
-  // Validate proprietaire fields - REQUIRED
-  if (data.TypeProprietaire === 'Physique') {
-    if (!data.NomProprietaire.trim()) {
-      errors.NomProprietaire = 'Champ obligatoire';
-    }
-    if (!data.PrenomProprietaire.trim()) {
-      errors.PrenomProprietaire = 'Champ obligatoire';
-    }
-  } else if (data.TypeProprietaire === 'Morale') {
-    if (!data.NomEntreprise.trim()) {
-      errors.NomEntreprise = 'Champ obligatoire';
-    }
-  }
-
-  // Validate autorisations - AT LEAST ONE REQUIRED
-  if (!data.autorisations || data.autorisations.length === 0) {
-    errors.autorisations = 'Au moins une autorisation est requise';
-  } else {
-    const autorisationErrors: AutorisationError[] = data.autorisations.map(() => ({}));
-    let hasErrors = false;
-
-    data.autorisations.forEach((auto, index) => {
-      // Validate TypeAutorisation
-      if (!auto.TypeAutorisation) {
-        autorisationErrors[index].TypeAutorisation = 'Type obligatoire';
-        hasErrors = true;
+    if (issue.path[0] === 'autorisations' && typeof issue.path[1] === 'number') {
+      const idx = issue.path[1];
+      const key = issue.path[2] as keyof AutorisationError;
+      if (!errors.autorisations || typeof errors.autorisations === 'string') {
+        errors.autorisations = [];
       }
-      
-      // Validate NumeroAutorisation
-      if (!auto.NumeroAutorisation.trim()) {
-        autorisationErrors[index].NumeroAutorisation = 'Numéro obligatoire';
-        hasErrors = true;
-      }
-      
-      // Validate DateAutorisation
-      if (!auto.DateAutorisation.trim()) {
-        autorisationErrors[index].DateAutorisation = 'Date obligatoire';
-        hasErrors = true;
-      } else {
-        // Check if date format is correct (DD/MM/YYYY)
-        const datePattern = /^\d{2}\/\d{2}\/\d{4}$/;
-        if (!datePattern.test(auto.DateAutorisation)) {
-          autorisationErrors[index].DateAutorisation = 'Format invalide (JJ/MM/AAAA requis)';
-          hasErrors = true;
-        } else {
-          // Parse and validate the date
-          const parsedDate = parseDateString(auto.DateAutorisation);
-          if (!parsedDate) {
-            autorisationErrors[index].DateAutorisation = 'Date invalide';
-            hasErrors = true;
-          }
-        }
-      }
-    });
-
-    if (hasErrors) {
-      errors.autorisations = autorisationErrors;
+      const arr = errors.autorisations as AutorisationError[];
+      arr[idx] ||= {};
+      arr[idx][key] = issue.message;
+    } else {
+      const field = issue.path[0] as keyof StationFormData;
+      errors[field] = issue.message;
     }
   }
 
-  // Validate Telephone format
-  if (data.Telephone.trim() && !/^\+?\d{9,15}$/.test(data.Telephone.trim())) {
-    errors.Telephone = 'Numéro de téléphone invalide (9 à 15 chiffres, + facultatif)';
-  }
-
-  // Set general submit error if validation fails
   if (Object.keys(errors).length > 0) {
     errors.submit = 'Veuillez corriger les erreurs dans le formulaire avant de soumettre.';
   }
 
-  return { isValid: Object.keys(errors).length === 0, errors };
+  return errors;
+}
+
+export function validateStationData(data: StationFormData): { isValid: boolean; errors: NormalizedFormErrors } {
+  const parsed = stationSchema.safeParse(data);
+  if (parsed.success) {
+    return { isValid: true, errors: {} };
+  }
+  return { isValid: false, errors: mapZodErrorsToFormErrors(parsed.error) };
 }

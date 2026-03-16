@@ -8,6 +8,10 @@ import {
   writeBatch,
   runTransaction,
 } from 'firebase/firestore';
+
+function cleanFirestoreData<T extends Record<string, any>>(data: T): Partial<T> {
+  return Object.fromEntries(Object.entries(data).filter(([, value]) => value !== undefined)) as Partial<T>;
+}
 import { parseDateString } from '@/utils/format';
 import { db } from '@/lib/firebase/config';
 import {
@@ -150,11 +154,14 @@ export function useCreateStation() {
 
       if (!gerantSnap.empty) {
         gerantId = gerantSnap.docs[0].id;
-        batch.update(gerantSnap.docs[0].ref, {
+        const gerantUpdate: Partial<Gerant> = {
           PrenomGerant: formData.PrenomGerant.trim(),
           NomGerant: formData.NomGerant.trim(),
-          Telephone: formData.Telephone.trim() || undefined,
-        });
+        };
+        if (formData.Telephone.trim()) {
+          gerantUpdate.Telephone = formData.Telephone.trim();
+        }
+        batch.update(gerantSnap.docs[0].ref, cleanFirestoreData(gerantUpdate));
       } else {
         gerantId = generateUUID();
         const gerantRef = doc(db, COLLECTIONS.GERANTS, gerantId).withConverter(gerantConverter);
@@ -163,9 +170,11 @@ export function useCreateStation() {
           PrenomGerant: formData.PrenomGerant.trim(),
           NomGerant: formData.NomGerant.trim(),
           CINGerant: formData.CINGerant.trim(),
-          Telephone: formData.Telephone.trim() || undefined,
         };
-        batch.set(gerantRef, gerant);
+        if (formData.Telephone.trim()) {
+          gerant.Telephone = formData.Telephone.trim();
+        }
+        batch.set(gerantRef, cleanFirestoreData(gerant));
       }
 
       // 5. Proprietaire - FIXED VERSION with UUID
