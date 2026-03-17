@@ -13,10 +13,8 @@ export function useArchiveStation() {
     setError(null);
 
     try {
-      console.log(`Setting station ${stationId} status to "${statut}"...`);
       const stationRef = doc(db, COLLECTIONS.STATIONS, stationId);
       await updateDoc(stationRef, { Statut: statut });
-      console.log('✅ Station status updated successfully');
     } catch (err: any) {
       console.error('Error updating station status:', err);
       setError(`Failed to update station status: ${err?.message || String(err)}`);

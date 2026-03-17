@@ -215,7 +215,6 @@ export function useCreateStation() {
         if (existingPropId) {
           // Use existing ProprietaireID
           proprietaireId = existingPropId;
-          console.log('Reusing existing proprietaire with ID:', proprietaireId);
         } else {
           // Create new proprietaire with UUID
           proprietaireId = generateUUID();
@@ -224,7 +223,6 @@ export function useCreateStation() {
             ProprietaireID: proprietaireId,
             TypeProprietaire: formData.TypeProprietaire,
           };
-          console.log('Creating new proprietaire with ID:', proprietaireId);
           
           // Use proprietaireId as document ID
           const propRefWithId = doc(db, COLLECTIONS.PROPRIETAIRES, proprietaireId).withConverter(proprietaireConverter);
@@ -238,7 +236,6 @@ export function useCreateStation() {
               NomProprietaire: formData.NomProprietaire.trim(),
               PrenomProprietaire: formData.PrenomProprietaire.trim(),
             };
-            console.log('Creating proprietaire_physique with ProprietaireID:', proprietaireId);
             batch.set(physRef, physique);
           } else {
             const morRef = doc(collection(db, COLLECTIONS.PROPRIETAIRES_MORALES));
@@ -246,7 +243,6 @@ export function useCreateStation() {
               ProprietaireID: proprietaireId,
               NomEntreprise: formData.NomEntreprise.trim(),
             };
-            console.log('Creating proprietaire_morale with ProprietaireID:', proprietaireId, 'NomEntreprise:', formData.NomEntreprise.trim());
             batch.set(morRef, morale);
           }
         }
@@ -272,7 +268,6 @@ export function useCreateStation() {
         Commentaires: formData.Commentaires.trim() || '',
         NombreVolucompteur: formData.NombreVolucompteur ? parseInt(formData.NombreVolucompteur) : 0,
       };
-      console.log('Creating station with StationID:', stationId, 'ProprietaireID:', proprietaireId);
       batch.set(stationRef, station);
 
       // 7. Autorisation with UUID
@@ -317,9 +312,7 @@ export function useCreateStation() {
         batch.set(capRef, cap);
       }
 
-      console.log('Committing batch for station creation');
       await batch.commit();
-      console.log('Batch committed successfully');
     } catch (err: any) {
       console.error('Error creating station:', err);
       setError(`Failed to create station: ${err.message}`);

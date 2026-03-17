@@ -17,7 +17,6 @@ function cleanupCache() {
     }
   }
 }
-setInterval(cleanupCache, CACHE_TTL_MS);
 
 export async function POST(request: Request) {
   const rate = rateLimit(request, 20, 60 * 1000);
@@ -26,6 +25,7 @@ export async function POST(request: Request) {
   }
 
   try {
+    cleanupCache();
     const body = (await request.json()) as { origin?: { lat: number; lng: number }; destinations?: Array<{ lat: number; lng: number }> };
     const { origin, destinations } = body;
     const apiKey = process.env.GOOGLE_MAPS_API_KEY;

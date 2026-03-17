@@ -64,9 +64,6 @@ export function useUpdateStation() {
       // Check if StationID field is missing and add it if needed
       const needsStationIdFix = !currentStation?.StationID;
       const stationIdToUse = currentStation?.StationID || generateUUID();
-      if (needsStationIdFix) {
-        console.log(`⚠️ Station ${stationId} missing StationID field. Adding: ${stationIdToUse}`);
-      }
 
       /** -------------------------------
        * 1. Update Marque
@@ -326,7 +323,6 @@ export function useUpdateStation() {
         ProprietaireID: proprietaireId || '',
       };
 
-      console.log('Updating station with data:', stationUpdateData);
       batch.update(stationRef, cleanFirestoreData(stationUpdateData));
 
       /** -------------------------------
@@ -392,9 +388,7 @@ export function useUpdateStation() {
       /** -------------------------------
        * Commit
        * ------------------------------ */
-      console.log('Committing batch for station update with ProprietaireID:', proprietaireId);
       await batch.commit();
-      console.log('Batch committed successfully');
 
     } catch (err: any) {
       console.error('Failed to update station:', err);

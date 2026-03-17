@@ -71,14 +71,8 @@ export function useStationForm(mode: Mode, station?: StationWithDetails) {
     setErrors({});
   }, [station, empty]);
 
-  // Debug Gérant suggestions
+  // Filter Gérant suggestions
   useEffect(() => {
-    console.log('Gerants data:', gerants);
-    console.log('Gerant form inputs:', {
-      CINGerant: form.CINGerant,
-      PrenomGerant: form.PrenomGerant,
-      NomGerant: form.NomGerant,
-    });
     if (form.CINGerant || form.PrenomGerant || form.NomGerant) {
       const cin = form.CINGerant.toLowerCase().trim();
       const prenom = form.PrenomGerant.toLowerCase().trim();
@@ -91,7 +85,6 @@ export function useStationForm(mode: Mode, station?: StationWithDetails) {
           (nom && g.NomGerant?.toLowerCase?.().includes(nom))
         )
       );
-      console.log('Filtered Gérant suggestions:', filtered);
       setGerantSuggestions(filtered.slice(0, 5)); // Limit to 5 suggestions
     } else {
       setGerantSuggestions([]);
@@ -100,13 +93,6 @@ export function useStationForm(mode: Mode, station?: StationWithDetails) {
 
   // Filter Propriétaire suggestions
   useEffect(() => {
-    console.log('Proprietaires data:', proprietaires);
-    console.log('Proprietaire form inputs:', {
-      TypeProprietaire: form.TypeProprietaire,
-      PrenomProprietaire: form.PrenomProprietaire,
-      NomProprietaire: form.NomProprietaire,
-      NomEntreprise: form.NomEntreprise,
-    });
     if (form.TypeProprietaire === 'Physique' && (form.PrenomProprietaire || form.NomProprietaire)) {
       const prenom = form.PrenomProprietaire.toLowerCase().trim();
       const nom = form.NomProprietaire.toLowerCase().trim();
@@ -117,7 +103,6 @@ export function useStationForm(mode: Mode, station?: StationWithDetails) {
         p.details &&
         `${(p.details as ProprietairePhysique).PrenomProprietaire?.toLowerCase?.() || ''} ${(p.details as ProprietairePhysique).NomProprietaire?.toLowerCase?.() || ''}`.trim().includes(fullName)
       );
-      console.log('Filtered Propriétaire (Physique) suggestions:', filtered);
       setProprietaireSuggestions(filtered.slice(0, 5));
     } else if (form.TypeProprietaire === 'Morale' && form.NomEntreprise) {
       const entreprise = form.NomEntreprise.toLowerCase().trim();
@@ -127,7 +112,6 @@ export function useStationForm(mode: Mode, station?: StationWithDetails) {
         p.details &&
         (p.details as ProprietaireMorale).NomEntreprise?.toLowerCase?.().includes(entreprise)
       );
-      console.log('Filtered Propriétaire (Morale) suggestions:', filtered);
       setProprietaireSuggestions(filtered.slice(0, 5));
     } else {
       setProprietaireSuggestions([]);
