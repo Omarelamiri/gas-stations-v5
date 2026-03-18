@@ -47,3 +47,12 @@ Adjust the redirect target for non-admin users (e.g., to a specific “Not allow
 add users
 DirM@2026
 Ali@2025
+
+when you change ignoreDeprecations from 6.0 to 5.0 it gives this error :
+"Option 'baseUrl' is deprecated and will stop functioning in TypeScript 7.0. Specify compilerOption '"ignoreDeprecations": "6.0"' to silence this error.
+  Visit https://aka.ms/ts6 for migration information.ts
+Specify the base directory to resolve non-relative module names.
+
+See more: https://www.typescriptlang.org/tsconfig#baseUrl"
+
+it only work when i use 6.0
