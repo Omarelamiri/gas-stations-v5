@@ -1,8 +1,6 @@
 // src/lib/auth/serverAuth.ts
 import { auth } from 'firebase-admin';
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
-import { NextRequest } from 'next/server';
-
 // Initialize Firebase Admin SDK (only once)
 if (!getApps().length) {
   initializeApp({
@@ -16,10 +14,10 @@ if (!getApps().length) {
 
 /**
  * Verifies Firebase Auth token from request headers
- * @param request - NextRequest object
+ * @param request - Request object
  * @returns userId if valid, null if invalid/missing
  */
-export async function verifyAuthToken(request: NextRequest): Promise<string | null> {
+export async function verifyAuthToken(request: Request): Promise<string | null> {
   try {
     // Check Authorization header
     const authHeader = request.headers.get('authorization');
@@ -48,7 +46,7 @@ export async function verifyAuthToken(request: NextRequest): Promise<string | nu
 /**
  * Verifies token and returns full decoded token with claims
  */
-export async function verifyAuthTokenWithClaims(request: NextRequest) {
+export async function verifyAuthTokenWithClaims(request: Request) {
   try {
     const authHeader = request.headers.get('authorization');
     
@@ -70,7 +68,7 @@ export async function verifyAuthTokenWithClaims(request: NextRequest) {
 /**
  * Check if user has admin role
  */
-export async function isAdmin(request: NextRequest): Promise<boolean> {
+export async function isAdmin(request: Request): Promise<boolean> {
   const decodedToken = await verifyAuthTokenWithClaims(request);
   return decodedToken?.admin === true || false;
 }

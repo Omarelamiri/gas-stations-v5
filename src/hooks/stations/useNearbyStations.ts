@@ -2,6 +2,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { StationWithDetails } from '@/types/station';
 import { useStations } from './useStations';
+import { auth } from '@/lib/firebase/config';
 import { getApiUsage, canUseApi, incrementApiUsage, QUOTAS } from '@/lib/firebase/apiUsage';
 
 const MAX_DRIVING_KM = 20;
@@ -135,10 +136,12 @@ export function useNearbyStations() {
           }));
           
           const url = `/api/routes`;
+          const token = await auth.currentUser?.getIdToken();
           const response = await fetch(url, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
             },
             body: JSON.stringify({ origin, destinations })
           });

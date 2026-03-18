@@ -36,8 +36,8 @@ export function ConfirmDialog({
 
   const buttonVariants = {
     danger: 'danger' as const,
-    warning: 'primary' as const,
-    info: 'primary' as const
+    warning: 'default' as const,
+    info: 'default' as const
   };
 
   return (

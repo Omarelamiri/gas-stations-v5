@@ -2,10 +2,16 @@
 import { NextResponse } from 'next/server';
 import { getApiUsage } from '@/lib/firebase/apiUsage';
 import { rateLimit, rateLimitResponse } from '@/lib/rateLimit';
+import { verifyAuthToken } from '@/lib/auth/serverAuth';
 
 export async function GET(request: Request) {
   const rate = rateLimit(request, 40, 60 * 1000);
   if (!rate.allowed) return rateLimitResponse(rate.remaining, rate.resetInMs);
+
+  const uid = await verifyAuthToken(request);
+  if (!uid) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
 
   try {
     const usage = await getApiUsage();

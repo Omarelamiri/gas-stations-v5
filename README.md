@@ -27,3 +27,23 @@ npx tailwindcss init -p
       allow read: if isTrustedUser();
       allow write: if false; // Only backend should write
     }
+
+# manual
+What still requires manual setup (Step 5)
+5) Firestore Security Rules + Admin Claims (not auto-applicable)
+This step cannot be fully applied via code changes alone. The remaining required actions are:
+
+Run the one-time script to assign admin claims to the 3 user accounts (as suggested).
+Update Firestore security rules to enforce admin-only access where needed.
+I can provide exact script + rules snippets if you want, but they require running in your Firebase project (not something I can do purely via repo edits).
+
+If you want, I can now:
+
+Provide a complete Firestore rules snippet (based on your schema).
+Provide the exact script / command you should run to set the admin claims for those users.
+Adjust the redirect target for non-admin users (e.g., to a specific “Not allowed” page).
+
+
+add users
+DirM@2026
+Ali@2025

@@ -2,6 +2,9 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from '@/lib/firebase/config';
 import { useProvinces } from '@/hooks/ReferenceData/useProvinces';
 import { useCommunes } from '@/hooks/ReferenceData/useCommunes';
 import { useMarques } from '@/hooks/ReferenceData/useMarques';
@@ -868,6 +871,32 @@ const ProprietairesPanel = () => {
 };
 
 export default function DatabaseAdminPage() {
+  const router = useRouter();
+  const [authorized, setAuthorized] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        router.replace('/login');
+        return;
+      }
+
+      const idTokenResult = await user.getIdTokenResult();
+      if (!idTokenResult.claims?.admin) {
+        router.replace('/');
+        return;
+      }
+
+      setAuthorized(true);
+    });
+
+    return unsubscribe;
+  }, [router]);
+
+  if (authorized === null) {
+    return <p>Vérification des autorisations...</p>;
+  }
+
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-4">Admin Database Management</h1>

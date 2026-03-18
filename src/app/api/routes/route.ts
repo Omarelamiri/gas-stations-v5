@@ -1,6 +1,7 @@
 // src/app/api/routes/route.ts
 import { NextResponse } from 'next/server';
 import { rateLimit, rateLimitResponse } from '@/lib/rateLimit';
+import { verifyAuthToken } from '@/lib/auth/serverAuth';
 
 // --- CONFIGURATION ---
 const MAX_DESTINATIONS = 25;
@@ -22,6 +23,11 @@ export async function POST(request: Request) {
   const rate = rateLimit(request, 20, 60 * 1000);
   if (!rate.allowed) {
     return rateLimitResponse(rate.remaining, rate.resetInMs);
+  }
+
+  const uid = await verifyAuthToken(request);
+  if (!uid) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
@@ -138,9 +144,8 @@ export async function POST(request: Request) {
 
   } catch (error: unknown) {
     console.error('Routes API proxy error:', error);
-    const message = error instanceof Error ? error.message : 'Internal Server Error';
     return NextResponse.json(
-      { error: message },
+      { error: 'Internal Server Error' },
       { status: 500 }
     );
   }
