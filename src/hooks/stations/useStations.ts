@@ -40,6 +40,10 @@ import {
 } from '@/lib/firebase/converters';
 import { COLLECTIONS } from '@/lib/firebase/collections';
 
+// Add at the top of the file, outside the hook:
+let stationsCache: { data: StationWithDetails[]; timestamp: number } | null = null;
+const STATIONS_CACHE_TTL = 1000 * 60 * 5; // 5 minutes
+
 // HELPER: Chunks an array into smaller arrays of a specified size.
 function chunk<T>(arr: T[], size = 10): T[][] {
   const out: T[][] = [];
@@ -115,7 +119,14 @@ export function useStations() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchStationsWithDetails = useCallback(async () => {
+  const fetchStationsWithDetails = useCallback(async (forceRefresh = false) => {
+    // Check cache first
+    if (!forceRefresh && stationsCache && Date.now() - stationsCache.timestamp < STATIONS_CACHE_TTL) {
+      setStations(stationsCache.data);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
@@ -236,6 +247,7 @@ export function useStations() {
       });
 
       setStations(results);
+      stationsCache = { data: results, timestamp: Date.now() }; // ADD THIS LINE before setStations
     } catch (err: any) {
       console.error('Failed to load stations:', err);
       setError(err?.message || 'Failed to load stations');
@@ -249,5 +261,5 @@ export function useStations() {
     fetchStationsWithDetails();
   }, [fetchStationsWithDetails]);
 
-  return { stations, loading, error, refetch: fetchStationsWithDetails };
+  return { stations, loading, error, refetch: () => fetchStationsWithDetails(true) };
 }

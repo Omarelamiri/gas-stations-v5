@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/Input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FileSpreadsheet } from 'lucide-react';
-import ExcelJS from 'exceljs';
+// import ExcelJS from 'exceljs'; // Removed top-level import
 import { saveAs } from 'file-saver';
 import proj4 from 'proj4';
 import { formatDate } from '@/utils/format'; // Import formatDate function
@@ -31,6 +31,16 @@ const parseNumberWithSpaces = (value: string): string => {
   return value.replace(/\s/g, ''); // Remove spaces
 };
 
+// Dynamic import for ExcelJS to prevent bundling during compilation
+let ExcelJS: typeof import("exceljs");
+
+async function loadExcel() {
+  if (!ExcelJS) {
+    ExcelJS = await import("exceljs");
+  }
+  return ExcelJS;
+}
+
 export default function NearbyStationsPage() {
   const [coordinateSystem, setCoordinateSystem] = useState<'geographic' | 'lambert'>('geographic');
   const [latitude, setLatitude] = useState<string>('');
@@ -51,7 +61,9 @@ export default function NearbyStationsPage() {
 
     setIsExporting(true);
     try {
-      const workbook = new ExcelJS.Workbook();
+      const Excel = await loadExcel();
+
+      const workbook = new Excel.Workbook();
       const worksheet = workbook.addWorksheet('Stations à proximité');
 
       worksheet.columns = [

@@ -32,7 +32,12 @@ export async function POST(request: Request) {
 
   try {
     cleanupCache();
-    const body = (await request.json()) as { origin?: { lat: number; lng: number }; destinations?: Array<{ lat: number; lng: number }> };
+    let body: { origin?: { lat: number; lng: number }; destinations?: Array<{ lat: number; lng: number }> };
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: 'Invalid or empty request body' }, { status: 400 });
+    }
     const { origin, destinations } = body;
     const apiKey = process.env.GOOGLE_MAPS_API_KEY;
 

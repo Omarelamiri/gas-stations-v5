@@ -3,7 +3,6 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { useAuth } from '@/lib/auth/provider';
 import { Button } from '@/components/ui/Button'; // Assuming this is the path to the updated Button
 

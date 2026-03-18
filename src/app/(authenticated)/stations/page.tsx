@@ -16,7 +16,7 @@ import { SortConfig, FilterConfig } from "@/types/table";
 import { StationWithDetails } from "@/types/station";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
-import ExcelJS from 'exceljs';
+// import ExcelJS from 'exceljs'; // Removed top-level import
 import { saveAs } from 'file-saver';
 import { getProprietaireName } from '@/utils/format';
 import { getCellValue } from '@/components/stations/StationsTable';
@@ -57,8 +57,20 @@ function safeFullName(first?: string, last?: string) {
   return `${first || ''} ${last || ''}`.trim() || '-';
 }
 
+// Dynamic import for ExcelJS to prevent bundling during compilation
+let ExcelJS: typeof import("exceljs");
+
+async function loadExcel() {
+  if (!ExcelJS) {
+    ExcelJS = await import("exceljs");
+  }
+  return ExcelJS;
+}
+
 const exportToExcel = async (stations: StationWithDetails[], filename: string) => {
-  const workbook = new ExcelJS.Workbook();
+  const Excel = await loadExcel();
+
+  const workbook = new Excel.Workbook();
   const worksheet = workbook.addWorksheet('Stations');
 
   worksheet.columns = [

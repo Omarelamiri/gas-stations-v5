@@ -1,7 +1,7 @@
 "use client";
 
-import { ReactNode, useRef, useCallback } from 'react';
-import { LoadScript } from '@react-google-maps/api';
+import { ReactNode, useCallback, useEffect } from 'react';
+import { useJsApiLoader } from '@react-google-maps/api';
 import { incrementApiUsage } from '@/lib/firebase/apiUsage';
 
 interface MapsProviderProps {
@@ -10,26 +10,34 @@ interface MapsProviderProps {
 
 export default function MapsProvider({ children }: MapsProviderProps) {
   const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-  const incrementedRef = useRef(false);
+
+  const { isLoaded } = useJsApiLoader({
+    googleMapsApiKey: googleMapsApiKey ?? '',
+  });
 
   const handleLoad = useCallback(async () => {
-    if (incrementedRef.current) return;
-    incrementedRef.current = true;
-
+    // Only increment once per session using sessionStorage
+    if (sessionStorage.getItem('maps_incremented')) return;
+    sessionStorage.setItem('maps_incremented', '1');
     try {
       await incrementApiUsage('maps_js_api');
     } catch (error) {
-      console.error('Failed to increment maps usage from MapsProvider:', error);
+      console.error('Failed to increment maps usage:', error);
     }
   }, []);
+
+  useEffect(() => {
+    if (isLoaded) {
+      handleLoad();
+    }
+  }, [isLoaded, handleLoad]);
 
   if (!googleMapsApiKey) {
     return <>{children}</>;
   }
 
-  return (
-    <LoadScript googleMapsApiKey={googleMapsApiKey} onLoad={handleLoad}>
-      {children}
-    </LoadScript>
-  );
+  // useJsApiLoader handles script injection safely and avoids double-loading.
+  if (!isLoaded) return null;
+
+  return <>{children}</>;
 }

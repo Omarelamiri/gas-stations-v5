@@ -187,15 +187,16 @@ export default function MapPreview({ stations }: MapPreviewProps) {
             onCloseClick={() => setSelected(null)}
           >
             <div style={{ maxWidth: 280, padding: '4px' }}>
+              
+              <div>
+                <h6 className="font-bold text-md mb-1">{selected.marque.Marque}</h6>
+              </div>
               <h3 className="font-bold text-md mb-1">{selected.station.NomStation}</h3>
               <div className="text-xs text-gray-600 mb-2">{selected.station.Adresse}</div>
 
               <div className="space-y-1 text-sm">
                 <div>
                   <strong>Code:</strong> {selected.station.Code}
-                </div>
-                <div>
-                  <strong>Marque:</strong> {selected.marque.Marque}
                 </div>
                 <div>
                   <strong>Propriétaire:</strong> {getProprietaireName(selected)}

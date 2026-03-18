@@ -3,16 +3,13 @@ import { db } from './config';
 import { doc, getDoc, setDoc, increment } from 'firebase/firestore';
 
 export const QUOTAS = {
-  maps_js_api: parseInt(process.env.MAPS_QUOTA ?? '100', 10), // Free tier limit
-  routes_api: parseInt(process.env.ROUTES_QUOTA ?? '322', 10), // Free tier limit
+  maps_js_api: Number(process.env.MAPS_QUOTA ?? 100) || 100,
+  routes_api: Number(process.env.ROUTES_QUOTA ?? 322) || 322,
 } as const;
 
-// Optional: Add runtime validation (recommended)
-if (Number.isNaN(QUOTAS.maps_js_api) || QUOTAS.maps_js_api <= 0) {
-  throw new Error('Invalid or missing MAPS_QUOTA environment variable');
-}
-if (Number.isNaN(QUOTAS.routes_api) || QUOTAS.routes_api <= 0) {
-  throw new Error('Invalid or missing ROUTES_QUOTA environment variable');
+if (process.env.NODE_ENV !== 'production') {
+  if (!process.env.MAPS_QUOTA) console.warn('MAPS_QUOTA missing, using default 100');
+  if (!process.env.ROUTES_QUOTA) console.warn('ROUTES_QUOTA missing, using default 322');
 }
 
 // Get today's date in YYYY-MM-DD format
