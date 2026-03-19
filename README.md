@@ -10,3 +10,8 @@ npm install --save-dev @eslint/eslintrc@^3 @types/node@^20 @types/react@^19 @typ
 
 npx tailwindcss init -p
 
+# modifications
+
+- width
+- bottom table bars
+
