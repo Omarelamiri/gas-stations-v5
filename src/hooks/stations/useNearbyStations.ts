@@ -60,6 +60,12 @@ export function useNearbyStations() {
       setNearbyLoading(true);
       setNearbyError(null);
 
+      if (!auth.currentUser) {
+        setNearbyError("Vous devez être connecté pour effectuer cette recherche.");
+        setNearbyLoading(false);
+        return;
+      }
+
       try {
         if (!isFinite(latitude) || !isFinite(longitude)) {
           throw new Error('Coordonnées invalides.');
@@ -136,26 +142,32 @@ export function useNearbyStations() {
           }));
           
           const url = `/api/routes`;
-          const token = await auth.currentUser?.getIdToken();
+          const token = await auth.currentUser.getIdToken();
           const response = await fetch(url, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+              Authorization: `Bearer ${token}`,
             },
-            body: JSON.stringify({ origin, destinations })
+            body: JSON.stringify({ origin, destinations }),
           });
-          
+
           if (!response.ok) {
-            const errorData = await response.json();
-            if (errorData.error && errorData.error.includes('Rate limit')) {
-              setNearbyError(errorData.error);
-              setNearbyStations([]);
-              return;
+            let errorMsg = `Erreur ${response.status} - ${response.statusText}`;
+            try {
+              const errorData = await response.json();
+              if (errorData.error && errorData.error.includes('Rate limit')) {
+                setNearbyError(errorData.error);
+                setNearbyStations([]);
+                return;
+              }
+              errorMsg = errorData.error || errorMsg;
+            } catch {
+              // Server returned HTML (crash page) or empty body — use status fallback
             }
-            throw new Error('Erreur de l\'API Routes.');
+            throw new Error(errorMsg);
           }
-          
+
           const data = await response.json();
           
           if (data.status !== 'OK') {
