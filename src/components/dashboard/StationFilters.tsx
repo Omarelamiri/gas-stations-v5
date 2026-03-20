@@ -219,9 +219,9 @@ export default function StationFilters({ stations, onFilterChange }: StationFilt
   };
 
   return (
-    <div className="grid col-span-2 gap-4">
+    <div className="grid grid-cols-1 gap-4 min-w-0">
       {/* Province and Commune in first row */}
-      <Card className="col-span-1">
+      <Card className="col-span-1 min-w-0">
         <CardHeader className="border-b">
           <CardTitle>Province</CardTitle>
         </CardHeader>
@@ -252,7 +252,7 @@ export default function StationFilters({ stations, onFilterChange }: StationFilt
         </CardContent>
       </Card>
 
-      <Card className="col-span-1">
+      <Card className="col-span-1 min-w-0">
         <CardHeader className="border-b">
           <CardTitle className={`${isCommuneFilterDisabled ? 'text-gray-400' : ''}`}>
             Commune
@@ -294,7 +294,7 @@ export default function StationFilters({ stations, onFilterChange }: StationFilt
       </Card>
 
       {/* Marque and Status in second row */}
-      <Card className="col-span-1">
+      <Card className="col-span-1 min-w-0">
         <CardHeader className="border-b">
           <CardTitle>Marque</CardTitle>
         </CardHeader>
@@ -325,7 +325,7 @@ export default function StationFilters({ stations, onFilterChange }: StationFilt
         </CardContent>
       </Card>
 
-      <Card className="col-span-1">
+      <Card className="col-span-1 min-w-0">
         <CardHeader className="border-b">
           <CardTitle>Statut</CardTitle>
         </CardHeader>

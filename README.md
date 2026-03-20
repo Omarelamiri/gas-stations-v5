@@ -15,3 +15,12 @@ npx tailwindcss init -p
 - width
 - bottom table bars
 
+Restrict your Google Maps API keys in Google Cloud Console
+Go to Google Cloud Console → Credentials and add HTTP referrer 
+restrictions (your domain only) for the Maps JavaScript API key, 
+and IP restrictions for the Routes API key. This prevents key abuse 
+even if someone finds them.
+
+
+WEBSITES IP RESTRICTIONS
+

@@ -57,9 +57,8 @@ export default function DashboardPage() {
             <CardHeader>
               <CardTitle>Filtres</CardTitle>
             </CardHeader>
-            <CardContent>
-              {/* Keep filters two per row */}
-              <div className="grid grid-cols-2 gap-4">
+            <CardContent className="max-h-[calc(100vh-180px)] overflow-auto min-w-0"> 
+              <div className="min-w-0">
                 <StationFilters 
                   stations={stations} 
                   onFilterChange={setFilteredStations} 

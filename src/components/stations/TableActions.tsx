@@ -86,12 +86,12 @@ export default function TableActions({
   };
 
   return (
-    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-4 rounded-lg border">
-      <div className="flex items-center gap-4 w-full sm:w-auto">
+    <div className="flex flex-wrap items-center justify-between gap-4 bg-white p-4 rounded-lg border">
+      <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto min-w-0">
         <Button 
           onClick={onAddNew}
           variant="default" 
-          className="bg-black hover:bg-gray-800"
+          className="min-w-[150px] bg-black hover:bg-gray-800"
         >
           Ajouter une station
         </Button>
@@ -113,7 +113,7 @@ export default function TableActions({
         </Button>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2 w-full md:w-auto min-w-0">
         <span className="text-sm font-medium text-gray-700">Analyses PP :</span>
         <select
           value={analysisStatus}
@@ -147,13 +147,14 @@ export default function TableActions({
         )}
       </div>
 
-      <div className="flex items-center gap-4 w-full sm:w-auto">
+      <div className="flex flex-wrap items-center gap-2 w-full md:w-auto min-w-0 justify-end">
         <SearchInput
           value={searchQuery}
           onChange={onSearchChange}
           placeholder="Rechercher une station..."
+          className="min-w-[180px]"
         />
-        <div className="text-sm text-gray-500">
+        <div className="text-sm text-gray-500 whitespace-nowrap">
           {totalStations} station{totalStations !== 1 ? 's' : ''}
         </div>
       </div>

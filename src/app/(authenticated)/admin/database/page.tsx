@@ -459,7 +459,7 @@ const MarquesPanel = () => {
 };
 
 const GerantsPanel = () => {
-  const { gerants, loading: fetchLoading, error: fetchError } = useGerants();
+  const { gerants, loading: fetchLoading, error: fetchError, refetch } = useGerants();
   const { createGerant, updateGerant, deleteGerant, loading: crudLoading, error } = useGerantCRUD();
   const [open, setOpen] = useState(false);
   const [editingGerant, setEditingGerant] = useState<Gerant | null>(null);
@@ -493,6 +493,7 @@ const GerantsPanel = () => {
       } else {
         await createGerant(formData);
       }
+      refetch();
       setOpen(false);
       setFormData({
         CINGerant: '',
@@ -508,6 +509,7 @@ const GerantsPanel = () => {
   const handleDelete = async (id: string) => {
     try {
       await deleteGerant(id);
+      refetch();
     } catch (err) {
       console.error(err);
     }
@@ -621,7 +623,7 @@ const GerantsPanel = () => {
 // Revised ProprietairesPanel component in src/app/(authenticated)/admin/database/page.tsx
 
 const ProprietairesPanel = () => {
-  const { proprietaires, loading: fetchLoading, error: fetchError } = useProprietaires();
+  const { proprietaires, loading: fetchLoading, error: fetchError, refetch } = useProprietaires();
   const { createProprietaire, updateProprietaire, deleteProprietaire, loading: crudLoading, error } = useProprietaireCRUD();
   const [open, setOpen] = useState(false);
   const [editingProprietaire, setEditingProprietaire] = useState<(Proprietaire & { details: ProprietairePhysique | ProprietaireMorale | null }) | null>(null);
@@ -719,6 +721,7 @@ const ProprietairesPanel = () => {
       } else {
         await createProprietaire(payload);
       }
+      refetch();
       setOpen(false);
     } catch (err) {
       console.error(err);
@@ -728,6 +731,7 @@ const ProprietairesPanel = () => {
   const handleDelete = async (id: string) => {
     try {
       await deleteProprietaire(id);
+      refetch();
     } catch (err) {
       console.error(err);
     }
