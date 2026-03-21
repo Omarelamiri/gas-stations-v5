@@ -179,7 +179,7 @@ export default function StationsTable({
   const visible = sortedStations.slice(startIndex, endIndex);
 
   const actualCurrentPage = currentPage;
-  const actualTotalPages = Math.max(1, Math.ceil(sortedStations.length / pageSize));
+  const actualTotalPages = totalPages;
 
   useEffect(() => {
     if (triggerExport) {

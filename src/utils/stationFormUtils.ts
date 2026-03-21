@@ -47,12 +47,17 @@ export function stationWithDetailsToFormData(stationData: StationWithDetails): S
       ? (proprietaire.details as any)?.NomEntreprise || ''
       : '',
     autorisations: autorisations?.length > 0 
-      ? autorisations.map(a => ({
-          TypeAutorisation: a.TypeAutorisation,
-          NumeroAutorisation: a.NumeroAutorisation || '',
-          // Convert Date to DD/MM/YYYY format
-          DateAutorisation: formatDateForInput(a.DateAutorisation)
-        }))
+      ? [...autorisations]
+          .sort((a, b) => {
+            if (a.TypeAutorisation === 'création') return -1;
+            if (b.TypeAutorisation === 'création') return 1;
+            return 0;
+          })
+          .map(a => ({
+            TypeAutorisation: a.TypeAutorisation,
+            NumeroAutorisation: a.NumeroAutorisation || '',
+            DateAutorisation: formatDateForInput(a.DateAutorisation)
+          }))
       : [{ TypeAutorisation: 'création', NumeroAutorisation: '', DateAutorisation: '' }],
     CapaciteGasoil: gasoilCapacity?.CapaciteLitres?.toString() || '0',
     CapaciteSSP: sspCapacity?.CapaciteLitres?.toString() || '0',

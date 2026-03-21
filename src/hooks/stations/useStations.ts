@@ -263,3 +263,7 @@ export function useStations() {
 
   return { stations, loading, error, refetch: () => fetchStationsWithDetails(true) };
 }
+
+export function invalidateStationsCache() {
+  stationsCache = null;
+}

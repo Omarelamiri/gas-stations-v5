@@ -8,6 +8,7 @@ import {
   writeBatch,
   runTransaction,
 } from 'firebase/firestore';
+import { invalidateStationsCache } from './useStations';
 
 function cleanFirestoreData<T extends Record<string, any>>(data: T): Partial<T> {
   return Object.fromEntries(Object.entries(data).filter(([, value]) => value !== undefined)) as Partial<T>;
@@ -313,6 +314,7 @@ export function useCreateStation() {
       }
 
       await batch.commit();
+      invalidateStationsCache();
     } catch (err: any) {
       console.error('Error creating station:', err);
       setError(`Failed to create station: ${err.message}`);

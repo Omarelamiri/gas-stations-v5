@@ -3,6 +3,7 @@ import { useCallback, useState } from 'react';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import { COLLECTIONS } from '@/lib/firebase/collections';
+import { invalidateStationsCache } from './useStations';
 
 export function useArchiveStation() {
   const [loading, setLoading] = useState(false);
@@ -15,6 +16,7 @@ export function useArchiveStation() {
     try {
       const stationRef = doc(db, COLLECTIONS.STATIONS, stationId);
       await updateDoc(stationRef, { Statut: statut });
+      invalidateStationsCache();
     } catch (err: any) {
       console.error('Error updating station status:', err);
       setError(`Failed to update station status: ${err?.message || String(err)}`);

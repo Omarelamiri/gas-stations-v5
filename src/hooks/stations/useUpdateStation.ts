@@ -9,6 +9,7 @@ import {
   query,
   where,
 } from 'firebase/firestore';
+import { invalidateStationsCache } from './useStations';
 
 function cleanFirestoreData<T extends Record<string, any>>(data: T): Partial<T> {
   return Object.fromEntries(Object.entries(data).filter(([, value]) => value !== undefined)) as Partial<T>;
@@ -389,6 +390,7 @@ export function useUpdateStation() {
        * Commit
        * ------------------------------ */
       await batch.commit();
+      invalidateStationsCache();
 
     } catch (err: any) {
       console.error('Failed to update station:', err);

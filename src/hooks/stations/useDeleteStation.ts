@@ -10,6 +10,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import { COLLECTIONS } from '@/lib/firebase/collections';
+import { invalidateStationsCache } from './useStations';
 
 export function useDeleteStation() {
   const [loading, setLoading] = useState(false);
@@ -49,6 +50,7 @@ export function useDeleteStation() {
       batch.delete(stationRef);
       
       await batch.commit();
+      invalidateStationsCache();
       
     } catch (err: any) {
       console.error('Error deleting station:', err);
