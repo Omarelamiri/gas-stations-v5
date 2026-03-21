@@ -135,12 +135,27 @@ export function useNearbyStations() {
             lat: roundedLat,
             lng: roundedLng
           };
-          
+
           const destinations = chunk.map(c => ({
             lat: c.station.station.Latitude!,
             lng: c.station.station.Longitude!
           }));
-          
+
+          // Guard: origin + destination validity
+          if (!origin || !Number.isFinite(origin.lat) || !Number.isFinite(origin.lng)) {
+            throw new Error('Invalid origin coordinates.');
+          }
+
+          if (!destinations || destinations.length === 0) {
+            // No destinations in this chunk, skip request
+            continue;
+          }
+
+          if (destinations.some(d => !Number.isFinite(d.lat) || !Number.isFinite(d.lng))) {
+            throw new Error('Invalid destination coordinates.');
+          }
+
+          const requestBody = { origin, destinations };
           const url = `/api/routes`;
           const token = await auth.currentUser.getIdToken();
           const response = await fetch(url, {
@@ -149,7 +164,7 @@ export function useNearbyStations() {
               'Content-Type': 'application/json',
               Authorization: `Bearer ${token}`,
             },
-            body: JSON.stringify({ origin, destinations }),
+            body: JSON.stringify(requestBody),
           });
 
           if (!response.ok) {
